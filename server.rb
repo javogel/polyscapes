@@ -6,5 +6,5 @@ also_reload '/public/sketch.js' if development?
 set :static_cache_control, [:public, max_age: 0]
 
 get '/' do
-    erb :sketch
+  erb :sketch
 end
