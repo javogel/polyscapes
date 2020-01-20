@@ -1,16 +1,16 @@
 const images = ["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"]
 const imageElements = [
-  backgroundImage, 
-  verticalStripes, 
-  horizontalStripes, 
-  // diagonalStripes,  
-  centeredCircle, 
+  backgroundImage,
+  verticalStripes,
+  horizontalStripes,
+  // diagonalStripes,
+  centeredCircle,
   triangle
 ]
 
 
 function triangle(ctx, img) {
-  if(Math.random() < 0.3)  return 
+  if(Math.random() < 0.3)  return
 
   const side = 700
   const cx = canvas.width/2
@@ -20,9 +20,9 @@ function triangle(ctx, img) {
   ctx.save();
   ctx.strokeStyle = "rgba(1, 1, 1, 0)";
   ctx.translate(cx, cy);
-  
+
   ctx.beginPath();
- 
+
     ctx.moveTo(0, -h / 2);
     ctx.lineTo( -side / 2, h / 2);
     ctx.lineTo(side / 2, h / 2);
@@ -47,7 +47,7 @@ function triangle(ctx, img) {
 
 
 function centeredCircle(ctx, img) {
-  if(Math.random() < 0.3)  return 
+  if(Math.random() < 0.3)  return
 
     ctx.save();
     ctx.beginPath();
@@ -70,7 +70,7 @@ function centeredCircle(ctx, img) {
 }
 
 function horizontalStripes(ctx, img) {
-  if(Math.random() < 0.5)  return 
+  if(Math.random() < 0.5)  return
 
   const strips = 12;
     for (let i = 1; i <= strips; i = i + 3) {
@@ -89,15 +89,15 @@ function horizontalStripes(ctx, img) {
 }
 
 function verticalStripes(ctx, img) {
-  if(Math.random() < 0.5)  return 
-  
+  if(Math.random() < 0.5)  return
+
   const strips = 12;
 
   for (let i = 1; i <= strips; i = i + 3) {
     ctx.drawImage(
       img,
       i * img.width/strips,
-      0, 
+      0,
       img.width/strips,
       img.height,
       i * canvas.width/strips,
@@ -111,20 +111,20 @@ function verticalStripes(ctx, img) {
 }
 
 function diagonalStripes(ctx, img) {
-  if(Math.random() < 0)  return 
-  
+  if(Math.random() < 0)  return
+
   const strips = 12;
   const lineWidth = 50;
   ctx.save()
   // ctx.lineWidth = 30
   // ctx.strokeStyle = "rgba(1, 1, 1, 0)";
   ctx.beginPath();
- 
+
 
   for (let i = 1; i <= strips; i = i + 2) {
     ctx.moveTo(0, i*canvas.height/strips);
     ctx.lineTo(i*canvas.width/strips,0);
-   
+
   }
 
   // ctx.moveTo(0, canvas.height);
@@ -133,7 +133,7 @@ function diagonalStripes(ctx, img) {
   for (let y = strips; y > 0; y = y - 2) {
     ctx.moveTo( y*canvas.width/strips, canvas.height);
     ctx.lineTo(canvas.width,  y*canvas.height/strips);
- 
+
   }
 
   ctx.stroke();
@@ -177,7 +177,7 @@ function draw() {
 
   canvas.width = body.offsetWidth;
   canvas.height = body.offsetHeight;
-  
+
   // const [first, ...rest] = imageElements
   // drawElements([first, ...shuffleArray(rest)], ctx)
   drawElements(imageElements, ctx)
@@ -185,7 +185,7 @@ function draw() {
 
 
 function drawElements(elements, ctx){
-  if(elements.length == 0) return 
+  if(elements.length == 0) return
 
   const [el, ...rest] = elements
   const img = new Image();
