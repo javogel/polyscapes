@@ -7,27 +7,20 @@ const landscapes = [
   "peak.jpeg"
 ];
 
-var canvas = "";
+var canvas;
 const backgroundImg = new Image();
 const treeImg = new Image();
 const riverImg = new Image();
+let audioReady = false;
 
 // Start of audio setup code
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+var audioCtx 
 var source;
 var stream;
-var analyser = audioCtx.createAnalyser();
-analyser.minDecibels = -90;
-analyser.maxDecibels = -10;
-analyser.smoothingTimeConstant = 0.85;
-var distortion = audioCtx.createWaveShaper();
-var gainNode = audioCtx.createGain();
-var biquadFilter = audioCtx.createBiquadFilter();
-var convolver = audioCtx.createConvolver();
+var analyser 
 
-analyser.fftSize = 32;
-var bufferLengthAlt = analyser.frequencyBinCount;
-var dataArrayAlt = new Uint8Array(bufferLengthAlt);
+var dataArrayAlt
+// var  dataArrayAlt  = new Float32Array(analyser.frequencyBinCount);
 // End of audio setup code
 
 function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
@@ -35,7 +28,7 @@ function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
   ctx.translate(centerX, centerY);
 
   var sides = options.sides;
-  var size = options.size || 400;
+  var size = options.size || 500;
   var radians = 0;
 
   if (options.rotation) {
@@ -59,11 +52,19 @@ function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
   if (options.sides == "circle") {
     ctx.arc(0, 0, size, 0, 2 * Math.PI);
   } else {
-    ctx.moveTo(size * Math.sin(0), size * Math.cos(0));
+    // ctx.moveTo(size/2 * Math.sin(0), size/2 * Math.cos(0));
     for (var i = 1; i <= sides; i += 1) {
-      var x = Math.round(size * Math.sin((i * 2 * Math.PI) / sides));
-      var y = Math.round(size * Math.cos((i * 2 * Math.PI) / sides));
+     
+      var vertexSize =  size/2 + (Math.abs(dataArrayAlt[i] - 128))*2
 
+     
+  
+      var x = Math.round(vertexSize * Math.sin((i * 2 * Math.PI) / sides));
+      var y = Math.round(vertexSize * Math.cos((i * 2 * Math.PI) / sides));
+
+      if(i===1){
+        ctx.moveTo(x, y);
+      }
       ctx.lineTo(x, y);
     }
   }
@@ -116,6 +117,7 @@ function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
     );
     ctx.restore();
   }
+
 }
 
 function drawOrbit(
@@ -207,12 +209,16 @@ function drawElements() {
   ctx.globalCompositeOperation = "destination-over";
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  if(audioReady ){
+    refreshAudioData()
+  }
+
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0 } });
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: Math.PI } });
   //
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0, animated: true } });
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0, animated: true, direction: 'counter-clockwise' } });
-  //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: Math.PI, animated: true } });
+  // drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: Math.PI, animated: true } });
   //
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 4, rotation: { offset: 0 } });
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 5, rotation: { offset: 0 } });
@@ -236,14 +242,31 @@ function drawElements() {
   //drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: 4, size: 100, outline: true, orbiting: true, rotation:{ offset: 0 } });
   //drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: 4, size: 100, outline: true, orbiting: true, rotation:{ offset: 0, animated: true } });
   //drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: 4, size: 100, outline: true, orbiting: true, rotation: { offset: Math.PI/4, animated: true }});
+  
+ 
 
-  //drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: 4, size: 100, outline: true, orbiting: true, rotation:{ offset: 0, animated: true } });
-  //drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: 4, size: 100, outline: true, orbiting: true, rotation: { offset: 0, direction: 'counter-clockwise', animated: true }});
+  if(audioReady){
+//     drawBackgroundImage(ctx, backgroundImg);
+drawPolygon(ctx, cx, cy, riverImg, time , { sides: dataArrayAlt.length, rotation: { offset: Math.PI , animated: true } });
+  
+// drawCircle(ctx, treeImg, time);
+// drawBackgroundImage(ctx, backgroundImg, time);
+}
+  
+ 
+  // drawCircle(ctx,riverImg) 
+  // drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: Math.PI } });
 
-  //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 5, outline: true, rotation: { offset: 0 } });
-  drawCircle(ctx, treeImg, time);
-  drawBackgroundImage(ctx, backgroundImg, time);
-  setupAudio();
+
+  // drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: 3, size: 100, outline: true, orbiting: true, rotation:{ offset: 0, animated: true } });
+  // drawOrbit(ctx, 300, 12, 'clockwise', riverImg, time, { sides: dataArrayAlt[0]% 10 , size: 100, outline: true, orbiting: true, rotation: { offset: 0, direction: 'counter-clockwise', animated: true }});
+  // }
+  // drawPolygon(ctx, cx, cy, riverImg, time, { sides: 5, outline: true, rotation: { offset: 0 } });
+  // drawCircle(ctx, treeImg, time);
+  // drawBackgroundImage(ctx, backgroundImg, time);
+
+
+  
 
   window.requestAnimationFrame(drawElements);
 }
@@ -263,6 +286,13 @@ onDocumentRready(function() {
     "https://i.pinimg.com/originals/e6/6f/66/e66f66f33eebaa83b801493559fd30e6.jpg";
 
   window.requestAnimationFrame(drawElements);
+
+  document.body.addEventListener('click', function() {
+    if(audioReady === false){
+     setupAudio()
+    }
+    
+   });
 });
 
 function onDocumentRready(f) {
@@ -274,30 +304,38 @@ function onDocumentRready(f) {
 function setupAudio() {
   if (navigator.mediaDevices.getUserMedia) {
     console.log("getUserMedia supported.");
-    var constraints = { audio: true };
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then(function(stream) {
-        source = audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser);
-        // distortion.connect(biquadFilter);
-        // biquadFilter.connect(gainNode);
-        // convolver.connect(gainNode);
-        // gainNode.connect(analyzer);
-        // analyzer.connect(audioCtx.destination);
-        refreshAudioData();
-      })
-      .catch(function(err) {
-        console.log("The following gUM error occured: " + err);
-      });
+
+
+    var soundAllowed = function(stream) {
+      audioCtx= new AudioContext();
+      source = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.minDecibels = -90;
+      analyser.maxDecibels = -10;
+      analyser.smoothingTimeConstant = 0.85;
+      analyser.fftSize = 512;
+
+      dataArrayAlt = new Uint8Array(analyser.frequencyBinCount);
+
+      source.connect(analyser);
+      audioReady = true
+      console.log("mic ready")
+    }
+
+    var soundNotAllowed = function (error) {
+        console.log( "You must allow your microphone.");
+    }
+
+    navigator.getUserMedia({audio:true}, soundAllowed, soundNotAllowed);
   } else {
     console.log("getUserMedia not supported on your browser!");
   }
 }
 
 function refreshAudioData() {
-  analyser.getByteFrequencyData(dataArrayAlt);
-  debugger;
-  // console.log(dataArrayAlt);
-  refreshAudioData();
+  analyser.getByteTimeDomainData(dataArrayAlt);
+
+  console.log(dataArrayAlt);
 }
+
+
