@@ -17,17 +17,18 @@ var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var source;
 var stream;
 var analyser = audioCtx.createAnalyser();
-analyser.minDecibels = -90;
-analyser.maxDecibels = -10;
-analyser.smoothingTimeConstant = 0.85;
-var distortion = audioCtx.createWaveShaper();
-var gainNode = audioCtx.createGain();
-var biquadFilter = audioCtx.createBiquadFilter();
-var convolver = audioCtx.createConvolver();
+const maxFrequencyValue = 256
+//analyser.minDecibels = -90;
+//analyser.maxDecibels = -10;
+//analyser.smoothingTimeConstant = 0.85;
+//var distortion = audioCtx.createWaveShaper();
+//var gainNode = audioCtx.createGain();
+//var biquadFilter = audioCtx.createBiquadFilter();
+//var convolver = audioCtx.createConvolver();
 
 analyser.fftSize = 32;
-var bufferLengthAlt = analyser.frequencyBinCount;
-var dataArrayAlt = new Uint8Array(bufferLengthAlt);
+//var bufferLengthAlt = analyser.frequencyBinCount;
+var dataArrayAlt = new Uint8Array(analyser.frequencyBinCount);
 // End of audio setup code
 
 function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
@@ -198,6 +199,11 @@ function drawBackgroundImage(ctx, img) {
   );
 }
 
+function average(array) {
+  var sum = array.reduce((a,b) => a + b);
+  return sum/array.length;
+}
+
 function drawElements() {
   var ctx = document.getElementById("canvas").getContext("2d");
   var time = new Date();
@@ -206,9 +212,13 @@ function drawElements() {
 
   ctx.globalCompositeOperation = "destination-over";
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  refreshAudioData();
 
-  //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0 } });
-  //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: Math.PI } });
+  averageFrequency = average(dataArrayAlt);
+  size  = 400 * averageFrequency/maxFrequencyValue + 100;
+
+  drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0 }, size: size });
+  drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: Math.PI }, size: size });
   //
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0, animated: true } });
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 3, rotation: { offset: 0, animated: true, direction: 'counter-clockwise' } });
@@ -243,7 +253,6 @@ function drawElements() {
   //drawPolygon(ctx, cx, cy, riverImg, time, { sides: 5, outline: true, rotation: { offset: 0 } });
   drawCircle(ctx, treeImg, time);
   drawBackgroundImage(ctx, backgroundImg, time);
-  setupAudio();
 
   window.requestAnimationFrame(drawElements);
 }
@@ -252,6 +261,13 @@ onDocumentRready(function() {
   console.log("DOM Ready!");
   var body = document.getElementsByTagName("body")[0];
   canvas = document.getElementById("canvas");
+
+  // One-liner to resume playback when user interacted with the page.
+  document.querySelector('#enableAudio').addEventListener('click', function() {
+    audioCtx.resume().then(function () {
+      console.log('resumed context!');
+    });
+  });
 
   canvas.width = body.offsetWidth;
   canvas.height = body.offsetHeight;
@@ -262,6 +278,7 @@ onDocumentRready(function() {
   riverImg.src =
     "https://i.pinimg.com/originals/e6/6f/66/e66f66f33eebaa83b801493559fd30e6.jpg";
 
+  setupAudio();
   window.requestAnimationFrame(drawElements);
 });
 
@@ -280,11 +297,11 @@ function setupAudio() {
       .then(function(stream) {
         source = audioCtx.createMediaStreamSource(stream);
         source.connect(analyser);
-        // distortion.connect(biquadFilter);
-        // biquadFilter.connect(gainNode);
-        // convolver.connect(gainNode);
-        // gainNode.connect(analyzer);
-        // analyzer.connect(audioCtx.destination);
+        //distortion.connect(biquadFilter);
+        //biquadFilter.connect(gainNode);
+        //convolver.connect(gainNode);
+        //gainNode.connect(analyser);
+        //analyser.connect(audioCtx.destination);
         refreshAudioData();
       })
       .catch(function(err) {
@@ -295,9 +312,8 @@ function setupAudio() {
   }
 }
 
+
 function refreshAudioData() {
   analyser.getByteFrequencyData(dataArrayAlt);
-  debugger;
-  // console.log(dataArrayAlt);
-  refreshAudioData();
+  //console.log(dataArrayAlt);
 }
