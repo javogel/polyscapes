@@ -307,10 +307,10 @@ function draw() {
   canvas.width = body.offsetWidth;
   canvas.height = body.offsetHeight;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle=`rgba(${20* (Math.abs(audioDataArray[0]-128))},${4* (Math.abs(audioDataArray[0]-128))}, ${5* (Math.abs(audioDataArray[0]-128))} )`;
-  ctx.fillRect(0, 0, canvas.width,canvas.height);
-//   backgroundImage(ctx, images[0])
+  // ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // ctx.fillStyle=`rgba(${20* (Math.abs(audioDataArray[0]-128))},${4* (Math.abs(audioDataArray[0]-128))}, ${5* (Math.abs(audioDataArray[0]-128))} )`;
+  // ctx.fillRect(0, 0, canvas.width,canvas.height);
+  backgroundImage(ctx, images[0])
   drawElements(imageElements, ctx)
   
 
