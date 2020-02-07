@@ -1,12 +1,18 @@
+import { drawPenroseTiling, setupPenroseTiling } from "./penrose";
+import {onDocumentReady, pickRandom, shuffleArray} from "./utils"
+
 let images = shuffleArray(["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"])
 const imageElements = [
 //   verticalStripes,
 //   horizontalStripes,
 //   centeredCircle,
 //   triangle,
+//  drawPenroseTiling,
   drawOscillator,
   drawOscillatorSmall,
-  orbit
+  circleOrbit,
+  
+
 ]
 
 let userInteracted = false;
@@ -15,12 +21,15 @@ let userInteracted = false;
 let audioCtx 
 let source;
 let analyser 
-let audioDataArray
+let frequencyAnalyser;
+let audioDomainArray
+let audioFrequencyArray
 let audioReady = false
 // End of audio setup code
 
 function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
     ctx.save();
+    
     ctx.translate(centerX, centerY);
   
     var sides = options.sides;
@@ -51,7 +60,7 @@ function drawPolygon(ctx, centerX, centerY, img, time, options = {}) {
       // ctx.moveTo(size/2 * Math.sin(0), size/2 * Math.cos(0));
       for (var i = 1; i <= sides; i += 1) {
        
-        var vertexSize =  size/2 + (Math.abs(audioDataArray[i] - 128))*2
+        var vertexSize =  size/2 + (Math.abs(audioDomainArray[i] - 128))*2
   
        
     
@@ -121,20 +130,26 @@ function drawOscillator(ctx, img){
     var cx = canvas.width / 2;
     var cy = canvas.height / 2;
 
-    drawPolygon(ctx, cx, cy, img, time , { sides: audioDataArray.length, size: 500, rotation: { offset: Math.PI * Math.random()  , animated: true } });
-}
+    drawPolygon(ctx, cx, cy, img, time , { sides: audioDomainArray.length, size: 500, rotation: { offset: Math.PI * Math.random()  , animated: true } });
+
+  }
 
 function drawOscillatorSmall(ctx, img){
     var time = new Date();
     var cx = canvas.width / 2;
     var cy = canvas.height / 2;
 
-    drawPolygon(ctx, cx, cy, img, time , { sides: audioDataArray.length, size: audioDataArray[0]*3,  rotation: { offset: Math.PI * Math.random()  , animated: true } });
-}
+    ctx.save()
+    // ctx.globalCompositeOperation="color-burn"
+    drawPolygon(ctx, cx, cy, img, time , { sides: audioDomainArray.length, size: audioDomainArray[0]*3,  rotation: { offset: Math.PI * Math.random()  , animated: true } });
+    ctx.restore()
+  }
 
-function orbit(ctx, img){
+function circleOrbit(ctx, img){
     var time = new Date();
-    drawOrbit(ctx, 50, Math.max(Math.abs(audioDataArray[0]-128), 4), 'clockwise', img, time, {  sides: "circle", size: 100,  orbiting: true, rotation: { offset: Math.PI/4, animated: true }});
+
+    drawOrbit(ctx, 50, Math.max(Math.abs(audioDomainArray[0]-128), 4), 'clockwise', img, time, {  sides: "circle", size: 100,  orbiting: true, rotation: { offset: Math.PI/4, animated: true }});
+
 }
 
 function drawOrbit(
@@ -153,17 +168,16 @@ function drawOrbit(
     if (direction == "counter-clockwise") {
       radians = -radians;
     }
-    radius =  radius + (audioDataArray[0] - 128)
+    radius =  radius + (audioDomainArray[0] - 128)
   
     for (var i = 1; i <= numberOrbiting; i++) {
       var offset = (Math.PI * 2 * i) / numberOrbiting;
-      //var radians = Math.PI;
   
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate(radians + offset);
       ctx.translate(radius, 0);
-      var circleRadius = 5 + Math.abs(audioDataArray[1] -128)
+      var circleRadius = 5 + Math.abs(audioDomainArray[1] -128)
       drawPolygon(ctx, radius / 2, radius / 2, img, time, {...polygonOptions, size: circleRadius   });
       ctx.translate(-radius, 0);
       ctx.rotate(-radians - offset);
@@ -258,7 +272,7 @@ function horizontalStripes(ctx, img) {
 }
 
 function verticalStripes(ctx, img) {
-  const strips = Math.floor(audioDataArray[0]/10);
+  const strips = Math.floor(audioDomainArray[0]/10);
 
   for (let i = 1; i <= strips; i = i + 3) {
     ctx.drawImage(
@@ -299,17 +313,20 @@ function draw() {
   refreshAudioData()
   
 
-  var body = document.getElementsByTagName("body")[0];
+  // var body = document.getElementsByTagName("body")[0];
   var canvas = document.getElementById("canvas");
   var ctx = canvas.getContext("2d");
-  ctx.globalCompositeOperation = "destination-over";
 
-  canvas.width = body.offsetWidth;
-  canvas.height = body.offsetHeight;
+  
+
+  // canvas.width = body.offsetWidth;
+  // canvas.height = body.offsetHeight;
 
   // ctx.clearRect(0, 0, canvas.width, canvas.height);
   // ctx.fillStyle=`rgba(${20* (Math.abs(audioDataArray[0]-128))},${4* (Math.abs(audioDataArray[0]-128))}, ${5* (Math.abs(audioDataArray[0]-128))} )`;
   // ctx.fillRect(0, 0, canvas.width,canvas.height);
+
+  
   backgroundImage(ctx, images[0])
   drawElements(imageElements, ctx)
   
@@ -320,9 +337,13 @@ function draw() {
 
 
 function drawElements(elements, ctx){
+  // ctx.save()
   elements.forEach((el, index)=>{
+    // console.log(el, images[index+1])
     el(ctx, images[index+1])
   })
+  // ctx.restore()
+  // debugger;
 }
 
 
@@ -345,6 +366,17 @@ function setUpPolyscape() {
     }
   });
   loadImages()
+
+  var body = document.getElementsByTagName("body")[0];
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+  
+  canvas.width = body.offsetWidth;
+  canvas.height = body.offsetHeight;
+  
+
+  setupPenroseTiling(ctx, images)
+ 
   requestAnimationFrame(draw)
 }
 
@@ -358,7 +390,8 @@ onDocumentReady(setUpPolyscape)
 //
 
 function refreshAudioData() {
-    analyser.getByteTimeDomainData(audioDataArray);
+    analyser.getByteTimeDomainData(audioDomainArray);
+    // frequencyAnalyser.getByteFrequencyData(audioFrequencyArray)
 
 }
 
@@ -375,14 +408,21 @@ function setupAudio() {
         audioCtx = new AudioContext();
         source = audioCtx.createMediaStreamSource(stream);
         analyser = audioCtx.createAnalyser();
+        frequencyAnalyser = audioCtx.createAnalyser();
         analyser.minDecibels = -90;
         analyser.maxDecibels = -10;
         analyser.smoothingTimeConstant = 0.85;
         analyser.fftSize = 512;
+
+        // frequencyAnalyser.fftSize = 32;
+        // frequencyAnalyser.minDecibels = -90;
+        // frequencyAnalyser.maxDecibels = -10;
+        // frequencyAnalyser.smoothingTimeConstant = 0.85;
   
-        audioDataArray = new Uint8Array(analyser.frequencyBinCount);
-  
+        audioDomainArray = new Uint8Array(analyser.frequencyBinCount);
+        audioFrequencyArray = new Uint8Array(frequencyAnalyser.frequencyBinCount);
         source.connect(analyser);
+        // analyser.connect(frequencyAnalyser)
         audioReady = true
       }, soundNotAllowed);
     } else {
@@ -392,37 +432,7 @@ function setupAudio() {
 
 
 
-//
-// UTILITIES 
-//
 
-/**
- * Pick random item from array.
- */
-function pickRandom(list){
-  return list[Math.floor(Math.random()*list.length)];
-}
-
-/**
- * Randomize array element order in-place.
- * Using Durstenfeld shuffle algorithm.
- */
-function shuffleArray(array) {
-  for (var i = array.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var temp = array[i];
-      array[i] = array[j];
-      array[j] = temp;
-  }
-  return array
-}
-
-/**
- * Waits until document is ready to execute callback
- */
-function onDocumentReady(f) {
-  /in/.test(document.readyState) ? setTimeout("onDocumentReady(" + f + ")", 9) : f();
-}
 
 
 

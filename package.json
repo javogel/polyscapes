@@ -1,0 +1,26 @@
+{
+  "name": "polyscapes",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "https://github.com/javogel/Polyscape.git",
+  "author": "Johannus Vogel <johannus.vogel@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs": "^7.8.3",
+    "@babel/preset-env": "^7.8.4",
+    "@rollup/plugin-node-resolve": "^7.1.1",
+    "rollup": "^1.31.0",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-livereload": "^1.0.4",
+    "snowpack": "^1.1.4"
+  },
+  "dependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.4"
+  },
+  "scripts": {
+    "build": "npx rollup -c --watch",
+    "start": "npm run-script build & ruby server.rb",
+    "deploy": "git push -u origin master && git push heroku master"
+  }
+}
