@@ -383,24 +383,56 @@ function setupPenroseTiling(ctx, images) {
   // }
 }
 
-var images = shuffleArray(["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"]);
-var imageElements = [//   verticalStripes,
-//   horizontalStripes,
-//   centeredCircle,
-//   triangle,
-//  drawPenroseTiling,
-drawOscillator, drawOscillatorSmall, circleOrbit];
-
+//
+// AUDIO API
+//
 var audioCtx;
 var source;
 var analyser;
-var frequencyAnalyser;
-var audioDomainArray;
-var audioFrequencyArray;
-var audioReady = false; // End of audio setup code
+function refreshAudioData(audio) {
+  analyser.getByteTimeDomainData(audio.domainArray); // frequencyAnalyser.getByteFrequencyData(audioFrequencyArray)
+}
+function setupAudio(audio) {
+  if (navigator.mediaDevices.getUserMedia) {
+    console.log("getUserMedia supported.");
+
+    var soundNotAllowed = function soundNotAllowed(error) {
+      console.log("You must allow your microphone.");
+    };
+
+    navigator.getUserMedia({
+      audio: true
+    }, function (stream) {
+      audioCtx = new AudioContext();
+      source = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser(); // frequencyAnalyser = audioCtx.createAnalyser();
+
+      analyser.minDecibels = -90;
+      analyser.maxDecibels = -10;
+      analyser.smoothingTimeConstant = 0.85;
+      analyser.fftSize = 512; // frequencyAnalyser.fftSize = 32;
+      // frequencyAnalyser.minDecibels = -90;
+      // frequencyAnalyser.maxDecibels = -10;
+      // frequencyAnalyser.smoothingTimeConstant = 0.85;
+
+      audio.domainArray = new Uint8Array(analyser.frequencyBinCount); // audioFrequencyArray = new Uint8Array(frequencyAnalyser.frequencyBinCount);
+
+      source.connect(analyser); // analyser.connect(frequencyAnalyser)
+
+      audio.audioReady = true;
+    }, soundNotAllowed);
+  } else {
+    console.log("getUserMedia not supported on your browser!");
+  }
+}
+
+function backgroundImage(ctx, img) {
+  ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
+}
 
 function drawPolygon(ctx, centerX, centerY, img, time) {
   var options = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
+  var audio = arguments.length > 6 ? arguments[6] : undefined;
   ctx.save();
   ctx.translate(centerX, centerY);
   var sides = options.sides;
@@ -430,7 +462,7 @@ function drawPolygon(ctx, centerX, centerY, img, time) {
   } else {
     // ctx.moveTo(size/2 * Math.sin(0), size/2 * Math.cos(0));
     for (var i = 1; i <= sides; i += 1) {
-      var vertexSize = size / 2 + Math.abs(audioDomainArray[i] - 128) * 2;
+      var vertexSize = size / 2 + Math.abs(audio.domainArray[i] - 128) * 2;
       var x = Math.round(vertexSize * Math.sin(i * 2 * Math.PI / sides));
       var y = Math.round(vertexSize * Math.cos(i * 2 * Math.PI / sides));
 
@@ -469,45 +501,44 @@ function drawPolygon(ctx, centerX, centerY, img, time) {
   ctx.translate(-centerX, -centerY);
 
   if (!options.orbiting) {
-    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
   }
 }
 
-function drawOscillator(ctx, img) {
+function drawOscillator(ctx, img, audio) {
   var time = new Date();
-  var cx = canvas.width / 2;
-  var cy = canvas.height / 2;
+  var cx = ctx.canvas.width / 2;
+  var cy = ctx.canvas.height / 2;
   drawPolygon(ctx, cx, cy, img, time, {
-    sides: audioDomainArray.length,
+    sides: audio.domainArray.length,
     size: 500,
     rotation: {
       offset: Math.PI * Math.random(),
       animated: true
     }
-  });
+  }, audio);
 }
-
-function drawOscillatorSmall(ctx, img) {
+function drawOscillatorSmall(ctx, img, audio) {
   var time = new Date();
-  var cx = canvas.width / 2;
-  var cy = canvas.height / 2;
+  var cx = ctx.canvas.width / 2;
+  var cy = ctx.canvas.height / 2;
   ctx.save(); // ctx.globalCompositeOperation="color-burn"
 
   drawPolygon(ctx, cx, cy, img, time, {
-    sides: audioDomainArray.length,
-    size: audioDomainArray[0] * 3,
+    sides: audio.domainArray.length,
+    size: audio.domainArray[0] * 3,
     rotation: {
       offset: Math.PI * Math.random(),
       animated: true
     }
-  });
+  }, audio);
   ctx.restore();
 }
 
-function circleOrbit(ctx, img) {
+function circleOrbit(ctx, img, audio) {
   var time = new Date();
-  drawOrbit(ctx, 50, Math.max(Math.abs(audioDomainArray[0] - 128), 4), 'clockwise', img, time, {
+  drawOrbit(ctx, 50, Math.max(Math.abs(audio.domainArray[0] - 128), 4), 'clockwise', img, time, {
     sides: "circle",
     size: 100,
     orbiting: true,
@@ -515,45 +546,55 @@ function circleOrbit(ctx, img) {
       offset: Math.PI / 4,
       animated: true
     }
-  });
+  }, audio);
 }
 
-function drawOrbit(ctx, radius, numberOrbiting, direction, img, time, polygonOptions) {
+function drawOrbit(ctx, radius, numberOrbiting, direction, img, time, polygonOptions, audio) {
   var radians = 2 * Math.PI / 48 * time.getSeconds() + 2 * Math.PI / 48000 * time.getMilliseconds();
 
   if (direction == "counter-clockwise") {
     radians = -radians;
   }
 
-  radius = radius + (audioDomainArray[0] - 128);
+  radius = radius + (audio.domainArray[0] - 128);
 
   for (var i = 1; i <= numberOrbiting; i++) {
     var offset = Math.PI * 2 * i / numberOrbiting;
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
     ctx.rotate(radians + offset);
     ctx.translate(radius, 0);
-    var circleRadius = 5 + Math.abs(audioDomainArray[1] - 128);
+    var circleRadius = 5 + Math.abs(audio.domainArray[1] - 128);
     drawPolygon(ctx, radius / 2, radius / 2, img, time, _objectSpread2({}, polygonOptions, {
       size: circleRadius
     }));
     ctx.translate(-radius, 0);
     ctx.rotate(-radians - offset);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
-    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
+    ctx.translate(-ctx.canvas.width / 2, -ctx.canvas.height / 2);
+    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
     ctx.restore();
   }
 }
 
-function backgroundImage(ctx, img) {
-  ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
-}
+var images = shuffleArray(["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"]);
+var imageElements = [//   verticalStripes,
+//   horizontalStripes,
+//   centeredCircle,
+// triangle,
+// drawPenroseTiling,
+drawOscillator, drawOscillatorSmall, circleOrbit];
+
+var audio = {
+  domainArray: null,
+  frequencyArray: null,
+  audioReady: false
+}; // Start of audio state
 
 function draw() {
   requestAnimationFrame(draw);
-  if (audioReady === false) return;
-  refreshAudioData(); // var body = document.getElementsByTagName("body")[0];
+  if (audio.audioReady === false) return;
+  refreshAudioData(audio); // var body = document.getElementsByTagName("body")[0];
 
   var canvas = document.getElementById("canvas");
   var ctx = canvas.getContext("2d"); // canvas.width = body.offsetWidth;
@@ -567,12 +608,9 @@ function draw() {
 }
 
 function drawElements(elements, ctx) {
-  // ctx.save()
   elements.forEach(function (el, index) {
-    // console.log(el, images[index+1])
-    el(ctx, images[index + 1]);
-  }); // ctx.restore()
-  // debugger;
+    el(ctx, images[index + 1], audio);
+  });
 }
 
 function loadImages() {
@@ -585,8 +623,8 @@ function loadImages() {
 
 function setUpPolyscape() {
   document.body.addEventListener('click', function () {
-    if (audioReady === false) {
-      setupAudio();
+    if (audio.audioReady === false) {
+      setupAudio(audio);
     }
   });
   loadImages();
@@ -599,44 +637,4 @@ function setUpPolyscape() {
   requestAnimationFrame(draw);
 }
 
-onDocumentReady(setUpPolyscape); //
-// AUDIO API
-//
-
-function refreshAudioData() {
-  analyser.getByteTimeDomainData(audioDomainArray); // frequencyAnalyser.getByteFrequencyData(audioFrequencyArray)
-}
-
-function setupAudio() {
-  if (navigator.mediaDevices.getUserMedia) {
-    console.log("getUserMedia supported.");
-
-    var soundNotAllowed = function soundNotAllowed(error) {
-      console.log("You must allow your microphone.");
-    };
-
-    navigator.getUserMedia({
-      audio: true
-    }, function (stream) {
-      audioCtx = new AudioContext();
-      source = audioCtx.createMediaStreamSource(stream);
-      analyser = audioCtx.createAnalyser();
-      frequencyAnalyser = audioCtx.createAnalyser();
-      analyser.minDecibels = -90;
-      analyser.maxDecibels = -10;
-      analyser.smoothingTimeConstant = 0.85;
-      analyser.fftSize = 512; // frequencyAnalyser.fftSize = 32;
-      // frequencyAnalyser.minDecibels = -90;
-      // frequencyAnalyser.maxDecibels = -10;
-      // frequencyAnalyser.smoothingTimeConstant = 0.85;
-
-      audioDomainArray = new Uint8Array(analyser.frequencyBinCount);
-      audioFrequencyArray = new Uint8Array(frequencyAnalyser.frequencyBinCount);
-      source.connect(analyser); // analyser.connect(frequencyAnalyser)
-
-      audioReady = true;
-    }, soundNotAllowed);
-  } else {
-    console.log("getUserMedia not supported on your browser!");
-  }
-}
+onDocumentReady(setUpPolyscape);

@@ -1,12 +1,11 @@
 import babel from 'rollup-plugin-babel';
 import resolve from '@rollup/plugin-node-resolve';
-// import livereload from 'rollup-plugin-livereload'
 
 const config = {
-	input: './src/audioscape-1.js',
+	input: './src/index.js',
 	output: [
 		{
-			file: './public/build/audioscape-1.js',
+			file: './public/build/index.js',
             format: 'cjs'
 		},
 	],
