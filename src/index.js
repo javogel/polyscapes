@@ -88,7 +88,7 @@ function setUpPolyscape() {
     }
   }
   document.body.addEventListener('click', userInteractedCallback);
-  document.body.addEventListener("touchend", userInteractedCallback);
+  document.body.addEventListener("touchstart", userInteractedCallback, false);
   loadImages()
   audio.images = images
 

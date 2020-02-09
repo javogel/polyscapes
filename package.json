@@ -19,6 +19,6 @@
   "scripts": {
     "build": "npx rollup -c --watch",
     "start": "npm run-script build & ruby server.rb",
-    "deploy": "git push -u origin master && git push heroku master"
+    "deploy": "git push origin master && git push heroku master"
   }
 }

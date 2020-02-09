@@ -619,10 +619,10 @@ function setUpPolyscape() {
     if (audio.audioReady === false) {
       setupAudio(audio);
     }
-  };
+  }; // document.body.addEventListener('click', userInteractedCallback);
 
-  document.body.addEventListener('click', userInteractedCallback);
-  document.body.addEventListener("touchend", userInteractedCallback);
+
+  document.body.addEventListener("touchstart", userInteractedCallback, false);
   loadImages();
   audio.images = images;
   var body = document.getElementsByTagName("body")[0];
