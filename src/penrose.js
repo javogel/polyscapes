@@ -67,7 +67,7 @@ class Triangle {
     // Store fill style in a temp variable, to set it back later
     // var tempFillStyle = ctx.fillStyle;
 
-    ctx.fillStyle = this.fillColor;
+    // ctx.fillStyle = this.fillColor;
     // ctx.beginPath();
     ctx.moveTo(this.v1.x, this.v1.y);
     ctx.lineTo(this.v2.x, this.v2.y);
@@ -178,7 +178,7 @@ class ThickRightTriangle extends Triangle {
 }
 
 export function setupPenroseTiling(ctx, images) {
-  var rounds =  Math.floor(Math.random() * 6);
+  var rounds =  Math.floor(Math.random() * 8);
   var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
   currentGCO = pickRandom(globalCompositeOperations);
   triangles.length = 0;
@@ -267,11 +267,10 @@ export function drawPenroseTiling(ctx, x, audio) {
   ctx.globalCompositeOperation = currentGCO
   ctx.strokeStyle = "rgba(1, 1, 1, 0)";
 
-  if (audio.domainArray[0] - 128 > 10) {
-    // if(Math.random() < 0.3) {
-      ctx.globalCompositeOperation =
+  if (audio.domainArray[0] - 128 > 20) {
+    if(Math.random() < 0.3) {
       currentGCO = pickRandom(globalCompositeOperations);
-    // }
+    }
 
     setupPenroseTiling(ctx, audio.images);
   } else {
@@ -285,8 +284,8 @@ export function drawPenroseTiling(ctx, x, audio) {
       set.triangles.forEach(function(t, i) {
         // ctx.save();
         // const scale = audio.domainArray[i]/128
-        // ctx.scale(scale, scale)
-        const diff = audio.domainArray[i] > 128;
+        // ctx.scale(scale*2, scale*2)
+        const diff = audio.domainArray[i] > 110;
         if (diff) {
           t.draw(ctx);
         }

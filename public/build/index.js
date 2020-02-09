@@ -163,8 +163,8 @@ function () {
     value: function draw(ctx) {
       // Store fill style in a temp variable, to set it back later
       // var tempFillStyle = ctx.fillStyle;
-      ctx.fillStyle = this.fillColor; // ctx.beginPath();
-
+      // ctx.fillStyle = this.fillColor;
+      // ctx.beginPath();
       ctx.moveTo(this.v1.x, this.v1.y);
       ctx.lineTo(this.v2.x, this.v2.y);
       ctx.lineTo(this.v3.x, this.v3.y);
@@ -296,7 +296,7 @@ function (_Triangle4) {
 }(Triangle);
 
 function setupPenroseTiling(ctx, images) {
-  var rounds = Math.floor(Math.random() * 6);
+  var rounds = Math.floor(Math.random() * 8);
   var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
   currentGCO = pickRandom(globalCompositeOperations);
   triangles.length = 0;
@@ -366,9 +366,10 @@ function drawPenroseTiling(ctx, x, audio) {
   ctx.globalCompositeOperation = currentGCO;
   ctx.strokeStyle = "rgba(1, 1, 1, 0)";
 
-  if (audio.domainArray[0] - 128 > 10) {
-    // if(Math.random() < 0.3) {
-    ctx.globalCompositeOperation = currentGCO = pickRandom(globalCompositeOperations); // }
+  if (audio.domainArray[0] - 128 > 20) {
+    if (Math.random() < 0.3) {
+      currentGCO = pickRandom(globalCompositeOperations);
+    }
 
     setupPenroseTiling(ctx, audio.images);
   } else {
@@ -379,8 +380,8 @@ function drawPenroseTiling(ctx, x, audio) {
       set.triangles.forEach(function (t, i) {
         // ctx.save();
         // const scale = audio.domainArray[i]/128
-        // ctx.scale(scale, scale)
-        var diff = audio.domainArray[i] > 128;
+        // ctx.scale(scale*2, scale*2)
+        var diff = audio.domainArray[i] > 110;
 
         if (diff) {
           t.draw(ctx);
@@ -572,8 +573,8 @@ var imageElements = [backgroundImage, //   verticalStripes,
 //   horizontalStripes,
 //   centeredCircle,
 // triangle,
-drawOscillator, drawOscillatorSmall, // circleOrbit,
-drawPenroseTiling];
+drawOscillator, drawPenroseTiling, drawOscillatorSmall // circleOrbit,
+];
 
 var audio = {
   domainArray: null,
@@ -614,11 +615,14 @@ function loadImages() {
 }
 
 function setUpPolyscape() {
-  document.body.addEventListener('click', function () {
+  var userInteractedCallback = function userInteractedCallback() {
     if (audio.audioReady === false) {
       setupAudio(audio);
     }
-  });
+  };
+
+  document.body.addEventListener('click', userInteractedCallback);
+  document.body.addEventListener("touchend", userInteractedCallback);
   loadImages();
   audio.images = images;
   var body = document.getElementsByTagName("body")[0];

@@ -14,9 +14,10 @@ const imageElements = [
 // triangle,
 
   drawOscillator,
+  drawPenroseTiling,
   drawOscillatorSmall,
   // circleOrbit,
-  drawPenroseTiling
+
 ]
 
 let userInteracted = false;
@@ -79,12 +80,15 @@ function loadImages() {
 
 
 function setUpPolyscape() {
-  document.body.addEventListener('click', function() {
+
+  const userInteractedCallback = function() {
     if(audio.audioReady === false){
      setupAudio(audio)
      userInteracted = true
     }
-  });
+  }
+  document.body.addEventListener('click', userInteractedCallback);
+  document.body.addEventListener("touchend", userInteractedCallback);
   loadImages()
   audio.images = images
 
