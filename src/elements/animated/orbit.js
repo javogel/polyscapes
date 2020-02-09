@@ -2,9 +2,7 @@ import { drawPolygon } from "./polygon";
 
 export function circleOrbit(ctx, img, audio){
     var time = new Date();
-
     drawOrbit(ctx, 50, Math.max(Math.abs(audio.domainArray[0]-128), 4), 'clockwise', img, time, {  sides: "circle", size: 100,  orbiting: true, rotation: { offset: Math.PI/4, animated: true }}, audio);
-
 }
 
 function drawOrbit(

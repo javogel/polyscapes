@@ -7,16 +7,16 @@ import { circleOrbit } from "./elements/animated/orbit";
 
 let images = shuffleArray(["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"])
 const imageElements = [
+  backgroundImage,
 //   verticalStripes,
 //   horizontalStripes,
 //   centeredCircle,
 // triangle,
-  // drawPenroseTiling,
+
   drawOscillator,
   drawOscillatorSmall,
-  circleOrbit
-  
-
+  // circleOrbit,
+  drawPenroseTiling
 ]
 
 let userInteracted = false;
@@ -34,24 +34,25 @@ function draw() {
   requestAnimationFrame(draw)
 
   if(audio.audioReady === false) return
-  refreshAudioData(audio)
-  
 
-  // var body = document.getElementsByTagName("body")[0];
   var canvas = document.getElementById("canvas");
   var ctx = canvas.getContext("2d");
+
+  if(Math.random()<0.3){
+    refreshAudioData(audio)
+  }
+  
+  
+
+
 
   
 
   // canvas.width = body.offsetWidth;
   // canvas.height = body.offsetHeight;
 
-  // ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // ctx.fillStyle=`rgba(${20* (Math.abs(audioDataArray[0]-128))},${4* (Math.abs(audioDataArray[0]-128))}, ${5* (Math.abs(audioDataArray[0]-128))} )`;
-  // ctx.fillRect(0, 0, canvas.width,canvas.height);
-
   
-  backgroundImage(ctx, images[0])
+  // backgroundImage(ctx, images[0])
   drawElements(imageElements, ctx)
   
 
@@ -60,7 +61,9 @@ function draw() {
 
 function drawElements(elements, ctx){
   elements.forEach((el, index)=>{
+    ctx.save()
     el(ctx, images[index+1], audio)
+    ctx.restore()
   })
 }
 
@@ -83,6 +86,7 @@ function setUpPolyscape() {
     }
   });
   loadImages()
+  audio.images = images
 
   var body = document.getElementsByTagName("body")[0];
   var canvas = document.getElementById("canvas");
@@ -94,6 +98,7 @@ function setUpPolyscape() {
 
   setupPenroseTiling(ctx, images)
  
+
   requestAnimationFrame(draw)
 }
 

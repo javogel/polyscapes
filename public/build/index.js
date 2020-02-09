@@ -22,55 +22,6 @@ function _createClass(Constructor, protoProps, staticProps) {
   return Constructor;
 }
 
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-
-  return obj;
-}
-
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
-
-  if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    });
-    keys.push.apply(keys, symbols);
-  }
-
-  return keys;
-}
-
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
-    }
-  }
-
-  return target;
-}
-
 function _inherits(subClass, superClass) {
   if (typeof superClass !== "function" && superClass !== null) {
     throw new TypeError("Super expression must either be null or a function");
@@ -151,12 +102,18 @@ function onDocumentReady(f) {
   /in/.test(document.readyState) ? setTimeout("onDocumentReady(" + f + ")", 9) : f();
 }
 
-// Penrose Tiling
-//
-// Penrose Tiling Variables
-
+var GOLDEN_RATIO = 0.6180339887498948482;
+var globalCompositeOperations = [// "source-over",
+// "source-in",
+// "source-out",
+// "source-atop",
+// "destination-over",
+// "destination-in",
+// "destination-out",
+// "destination-atop",
+"lighter", "copy", "xor", "multiply", "screen", "overlay", "darken", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
 var triangles = [];
-var GOLDEN_RATIO = 0.6180339887498948482; // Used to represent both points and vectors for simplicity
+var currentGCO = pickRandom(globalCompositeOperations); // Used to represent both points and vectors for simplicity
 
 var Vector =
 /*#__PURE__*/
@@ -339,24 +296,48 @@ function (_Triangle4) {
 }(Triangle);
 
 function setupPenroseTiling(ctx, images) {
-  var rounds = 3;
+  var rounds = Math.floor(Math.random() * 6);
+  var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
+  currentGCO = pickRandom(globalCompositeOperations);
+  triangles.length = 0;
 
-  if (false) {
-    var side;
-    var t1;
-    var t2;
+  if (init_shape === "rhombus") {
+    var side = Math.min(ctx.canvas.width, ctx.canvas.width);
+    var t1 = new ThickRightTriangle(new Vector(side / 2.0, 0), new Vector(side, ctx.canvas.height / 2), new Vector(0, ctx.canvas.height / 2));
+    var t2 = new ThickLeftTriangle(new Vector(side / 2.0, ctx.canvas.height), new Vector(0, ctx.canvas.height / 2), new Vector(side, ctx.canvas.height / 2));
+    triangles.push(t1);
+    triangles.push(t2);
   }
 
-  {
+  if (init_shape === "rectangle") {
     var side = Math.min(canvas.width, canvas.height);
     var t1 = new ThinLeftTriangle(new Vector(0, 0), new Vector(canvas.width, canvas.height), new Vector(canvas.width, 0));
     var t2 = new ThinLeftTriangle(new Vector(canvas.width, canvas.height), new Vector(0, canvas.height), new Vector(0, 0));
     triangles.push(t1);
     triangles.push(t2);
-  } // triangles.forEach(function(t) {
-  //   t.draw(ctx);
-  // });
+  }
 
+  if (init_shape === 'circle') {
+    var side = Math.min(canvas.width, canvas.height);
+    var r = side / 2.0;
+    var grad_increment = 36 * (Math.PI / 180);
+    var center = new Vector(canvas.width / 2.0, canvas.height / 2.0);
+
+    for (var i = 0; i < 10; i++) {
+      var v1 = center.add(new Vector(Math.cos(grad_increment * i), Math.sin(grad_increment * i)).multiply(r));
+      var v2 = center.add(new Vector(Math.cos(grad_increment * (i + 1)), Math.sin(grad_increment * (i + 1))).multiply(r));
+      var trig_class;
+
+      if (i % 2 == 0) {
+        trig_class = ThinRightTriangle;
+      } else {
+        trig_class = ThinLeftTriangle;
+      }
+
+      var trig = new trig_class(center, v2, v1);
+      triangles.push(trig);
+    }
+  }
 
   for (var round = 0; round < rounds; round++) {
     var new_triangles = [];
@@ -377,10 +358,60 @@ function setupPenroseTiling(ctx, images) {
       }),
       image: pickRandom(images)
     };
-  }); // triangles = {
-  //   blue: triangles.filter((i)=> i.fillColor === "blue"),
-  //   yellow: triangles.filter((i)=> i.fillColor === "yellow"),
-  // }
+  });
+}
+function drawPenroseTiling(ctx, x, audio) {
+  // if (Math.random() < 0.3) return;
+  ctx.save();
+  ctx.globalCompositeOperation = currentGCO;
+  ctx.strokeStyle = "rgba(1, 1, 1, 0)";
+
+  if (audio.domainArray[0] - 128 > 10) {
+    // if(Math.random() < 0.3) {
+    ctx.globalCompositeOperation = currentGCO = pickRandom(globalCompositeOperations); // }
+
+    setupPenroseTiling(ctx, audio.images);
+  } else {
+    triangles.forEach(function (set) {
+      var image = set.image;
+      ctx.beginPath();
+      if (!set.triangles || set.triangles.length === 0) return;
+      set.triangles.forEach(function (t, i) {
+        // ctx.save();
+        // const scale = audio.domainArray[i]/128
+        // ctx.scale(scale, scale)
+        var diff = audio.domainArray[i] > 128;
+
+        if (diff) {
+          t.draw(ctx);
+        } // ctx.restore();
+
+      });
+      ctx.clip();
+      ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height); // ctx.restore();
+    });
+  } // ctx.restore();
+  // const img2 = pickRandom(images)
+  // ctx.save();
+  // ctx.beginPath();
+  // triangles.blue.forEach(function(t) {
+  //   t.draw(ctx);
+  // });
+  // ctx.clip();
+  // ctx.drawImage(
+  //   img2,
+  //   0,
+  //   0,
+  //   img2.width,
+  //   img2.height,
+  //   0,
+  //   0,
+  //   canvas.width,
+  //   canvas.height
+  // );
+
+
+  ctx.restore();
 }
 
 //
@@ -536,54 +567,13 @@ function drawOscillatorSmall(ctx, img, audio) {
   ctx.restore();
 }
 
-function circleOrbit(ctx, img, audio) {
-  var time = new Date();
-  drawOrbit(ctx, 50, Math.max(Math.abs(audio.domainArray[0] - 128), 4), 'clockwise', img, time, {
-    sides: "circle",
-    size: 100,
-    orbiting: true,
-    rotation: {
-      offset: Math.PI / 4,
-      animated: true
-    }
-  }, audio);
-}
-
-function drawOrbit(ctx, radius, numberOrbiting, direction, img, time, polygonOptions, audio) {
-  var radians = 2 * Math.PI / 48 * time.getSeconds() + 2 * Math.PI / 48000 * time.getMilliseconds();
-
-  if (direction == "counter-clockwise") {
-    radians = -radians;
-  }
-
-  radius = radius + (audio.domainArray[0] - 128);
-
-  for (var i = 1; i <= numberOrbiting; i++) {
-    var offset = Math.PI * 2 * i / numberOrbiting;
-    ctx.save();
-    ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
-    ctx.rotate(radians + offset);
-    ctx.translate(radius, 0);
-    var circleRadius = 5 + Math.abs(audio.domainArray[1] - 128);
-    drawPolygon(ctx, radius / 2, radius / 2, img, time, _objectSpread2({}, polygonOptions, {
-      size: circleRadius
-    }));
-    ctx.translate(-radius, 0);
-    ctx.rotate(-radians - offset);
-    ctx.translate(-ctx.canvas.width / 2, -ctx.canvas.height / 2);
-    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.restore();
-    ctx.restore();
-  }
-}
-
 var images = shuffleArray(["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"]);
-var imageElements = [//   verticalStripes,
+var imageElements = [backgroundImage, //   verticalStripes,
 //   horizontalStripes,
 //   centeredCircle,
 // triangle,
-// drawPenroseTiling,
-drawOscillator, drawOscillatorSmall, circleOrbit];
+drawOscillator, drawOscillatorSmall, // circleOrbit,
+drawPenroseTiling];
 
 var audio = {
   domainArray: null,
@@ -594,22 +584,24 @@ var audio = {
 function draw() {
   requestAnimationFrame(draw);
   if (audio.audioReady === false) return;
-  refreshAudioData(audio); // var body = document.getElementsByTagName("body")[0];
-
   var canvas = document.getElementById("canvas");
-  var ctx = canvas.getContext("2d"); // canvas.width = body.offsetWidth;
-  // canvas.height = body.offsetHeight;
-  // ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // ctx.fillStyle=`rgba(${20* (Math.abs(audioDataArray[0]-128))},${4* (Math.abs(audioDataArray[0]-128))}, ${5* (Math.abs(audioDataArray[0]-128))} )`;
-  // ctx.fillRect(0, 0, canvas.width,canvas.height);
+  var ctx = canvas.getContext("2d");
 
-  backgroundImage(ctx, images[0]);
+  if (Math.random() < 0.3) {
+    refreshAudioData(audio);
+  } // canvas.width = body.offsetWidth;
+  // canvas.height = body.offsetHeight;
+  // backgroundImage(ctx, images[0])
+
+
   drawElements(imageElements, ctx);
 }
 
 function drawElements(elements, ctx) {
   elements.forEach(function (el, index) {
+    ctx.save();
     el(ctx, images[index + 1], audio);
+    ctx.restore();
   });
 }
 
@@ -628,6 +620,7 @@ function setUpPolyscape() {
     }
   });
   loadImages();
+  audio.images = images;
   var body = document.getElementsByTagName("body")[0];
   var canvas = document.getElementById("canvas");
   var ctx = canvas.getContext("2d");
