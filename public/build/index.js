@@ -113,6 +113,7 @@ var globalCompositeOperations = [// "source-over",
 // "destination-atop",
 "lighter", "copy", "xor", "multiply", "screen", "overlay", "darken", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
 var triangles = [];
+var sequentialTriangles = [];
 var currentGCO = pickRandom(globalCompositeOperations);
 var minimumValToRender; // Used to represent both points and vectors for simplicity
 
@@ -352,14 +353,31 @@ function generateTriangles(ctx, init_shape, rounds) {
 }
 
 function setupPenroseTiling(ctx, images) {
-  var rounds = Math.floor(Math.random() * 8);
+  var rounds = 1 + Math.floor(Math.random() * 6);
   var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
   currentGCO = pickRandom(globalCompositeOperations);
   triangles.length = 0;
   triangles = generateTriangles(ctx, init_shape, rounds);
   triangles = Object.values(groupBy(triangles, "fillColor"));
-  minimumValToRender = pickRandom([130]);
+  minimumValToRender = pickRandom([110, 130]);
   triangles = triangles.map(function (arr) {
+    return {
+      triangles: arr,
+      rendered: [],
+      image: pickRandom(images),
+      gcu: pickRandom(globalCompositeOperations)
+    };
+  });
+}
+function setupSequentialPenroseTiling(ctx, images) {
+  var rounds = 1 + Math.floor(Math.random() * 6);
+  var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
+  currentGCO = pickRandom(globalCompositeOperations);
+  sequentialTriangles.length = 0;
+  sequentialTriangles = generateTriangles(ctx, init_shape, rounds);
+  sequentialTriangles = Object.values(groupBy(sequentialTriangles, "fillColor"));
+  minimumValToRender = pickRandom([130]);
+  sequentialTriangles = sequentialTriangles.map(function (arr) {
     return {
       triangles: arr,
       rendered: [],
@@ -390,12 +408,48 @@ function drawPenroseTiling(ctx, x, audio) {
         // ctx.save();
         // const scale = audio.domainArray[i]/128
         // ctx.scale(scale*2, scale*2)
-        var diff = audio.domainArray[i] > minimumValToRender;
+        var enabled = audio.domainArray[i] > minimumValToRender;
 
-        if (diff) {
+        if (enabled) {
           t.draw(ctx);
         } // ctx.restore();
 
+      });
+      ctx.clip();
+      ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height); // ctx.restore();
+    });
+  }
+
+  ctx.restore();
+}
+function drawSequentialPenroseTiling(ctx, x, audio) {
+  var MIN_VALUE_TO_CHANGE_SCENE = 153;
+  var PROBABILITY_GCO_CHANGE = 0.7;
+  ctx.save();
+  ctx.globalCompositeOperation = currentGCO;
+  ctx.strokeStyle = "rgba(1, 1, 1, 0)";
+
+  if (audio.domainArray[0] > MIN_VALUE_TO_CHANGE_SCENE) {
+    if (Math.random() < PROBABILITY_GCO_CHANGE) {
+      currentGCO = pickRandom(globalCompositeOperations);
+    }
+
+    setupSequentialPenroseTiling(ctx, audio.images);
+  } else {
+    sequentialTriangles.forEach(function (set) {
+      // ctx.globalCompositeOperation = set.gcu
+      var image = set.image; // let trianglesLength = set.triangles.length
+
+      ctx.beginPath();
+      var diff = audio.domainArray[0] > minimumValToRender;
+
+      if (diff && set.triangles.length > 0) {
+        set.rendered.push(set.triangles.pop());
+      }
+
+      if (!set.triangles || !set.rendered || set.rendered.length === 0) return;
+      set.rendered.forEach(function (t, i) {
+        t.draw(ctx);
       });
       ctx.clip();
       ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height); // ctx.restore();
@@ -567,13 +621,17 @@ function drawOscillatorSmall(ctx, img, audio) {
   ctx.restore();
 }
 
-var images = shuffleArray(["forrest.jpeg", "desert.jpeg", "gradient.jpeg", "yosemite.jpeg", "snow.jpeg", "peak.jpeg"]);
+var images = shuffleArray(["forrest.jpeg", "desert.jpeg", // "gradient.jpeg",
+// "yosemite.jpeg",
+// "snow.jpeg",
+"peak.jpeg", "tree.jpeg", // "city.jpeg",
+"bark.jpeg", "ocean.jpeg", "ocean2.jpeg", "purple-sky.jpeg", "white-trees.jpeg" // "orange-tree.jpeg"
+]);
 var imageElements = [backgroundImage, //   verticalStripes,
 //   horizontalStripes,
 //   centeredCircle,
 // triangle,
-drawOscillator, drawPenroseTiling, // drawSequentialPenroseTiling,
-drawOscillatorSmall // circleOrbit,
+drawPenroseTiling, drawOscillator, drawSequentialPenroseTiling, drawOscillatorSmall // circleOrbit
 ];
 
 var audio = {
@@ -599,7 +657,7 @@ function draw() {
 function drawElements(elements, ctx) {
   elements.forEach(function (el, index) {
     ctx.save();
-    el(ctx, images[index + 1], audio);
+    el(ctx, images[index], audio);
     ctx.restore();
   });
 }
@@ -619,7 +677,7 @@ function setUpPolyscape() {
     }
   };
 
-  document.body.addEventListener('click', userInteractedCallback);
+  document.body.addEventListener("click", userInteractedCallback);
   document.body.addEventListener("touchstart", userInteractedCallback, false);
   loadImages();
   audio.images = images;
@@ -629,6 +687,7 @@ function setUpPolyscape() {
   canvas.width = body.offsetWidth;
   canvas.height = body.offsetHeight;
   setupPenroseTiling(ctx, images);
+  setupSequentialPenroseTiling(ctx, images);
   requestAnimationFrame(draw);
 }
 

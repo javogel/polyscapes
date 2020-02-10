@@ -31,6 +31,7 @@ const globalCompositeOperations = [
 ];
 
 let triangles = [];
+let sequentialTriangles = [];
 let currentGCO = pickRandom(globalCompositeOperations);
 let minimumValToRender
 
@@ -250,7 +251,7 @@ function generateTriangles(ctx, init_shape, rounds){
 }
 
 export function setupPenroseTiling(ctx, images) {
-  var rounds =   Math.floor(Math.random() * 8);
+  var rounds =  1 + Math.floor(Math.random() * 6);
   var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
   currentGCO = pickRandom(globalCompositeOperations);
 
@@ -258,8 +259,30 @@ export function setupPenroseTiling(ctx, images) {
   triangles = generateTriangles(ctx, init_shape, rounds)
   triangles = Object.values(groupBy(triangles, "fillColor"))
 
-  minimumValToRender  = pickRandom([ 130])
+  minimumValToRender  = pickRandom([ 110, 130])
   triangles = triangles.map(arr => {
+    return {
+      triangles: arr,
+      rendered: [],
+      image: pickRandom(images),
+      gcu: pickRandom(globalCompositeOperations)
+    };
+  });
+
+}
+
+
+export function setupSequentialPenroseTiling(ctx, images) {
+  var rounds =   1 + Math.floor(Math.random() * 6);
+  var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
+  currentGCO = pickRandom(globalCompositeOperations);
+
+  sequentialTriangles.length = 0;
+  sequentialTriangles = generateTriangles(ctx, init_shape, rounds)
+  sequentialTriangles = Object.values(groupBy(sequentialTriangles, "fillColor"))
+
+  minimumValToRender  = pickRandom([ 130])
+  sequentialTriangles = sequentialTriangles.map(arr => {
     return {
       triangles: arr,
       rendered: [],
@@ -292,8 +315,8 @@ export function drawPenroseTiling(ctx, x, audio) {
         // ctx.save();
         // const scale = audio.domainArray[i]/128
         // ctx.scale(scale*2, scale*2)
-        const diff = audio.domainArray[i] > minimumValToRender;
-        if (diff) {
+        const enabled = audio.domainArray[i] > minimumValToRender;
+        if (enabled) {
           t.draw(ctx);
         }
         // ctx.restore();
@@ -331,9 +354,9 @@ export function drawSequentialPenroseTiling(ctx, x, audio) {
     if(Math.random() < PROBABILITY_GCO_CHANGE) {
       currentGCO = pickRandom(globalCompositeOperations);
     }
-    setupPenroseTiling(ctx, audio.images);
+    setupSequentialPenroseTiling(ctx, audio.images);
   } else {
-    triangles.forEach(set => {
+    sequentialTriangles.forEach(set => {
 
    
       // ctx.globalCompositeOperation = set.gcu
