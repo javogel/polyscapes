@@ -1,4 +1,4 @@
-import { drawPenroseTiling, setupPenroseTiling } from "./penrose";
+import { drawPenroseTiling,drawSequentialPenroseTiling, setupPenroseTiling } from "./penrose";
 import {onDocumentReady, pickRandom, shuffleArray} from "./utils"
 import { setupAudio, refreshAudioData } from "./audio";
 import { centeredCircle, backgroundImage, triangle } from "./elements/static";
@@ -13,8 +13,10 @@ const imageElements = [
 //   centeredCircle,
 // triangle,
 
+
   drawOscillator,
   drawPenroseTiling,
+  // drawSequentialPenroseTiling,
   drawOscillatorSmall,
   // circleOrbit,
 
@@ -42,17 +44,7 @@ function draw() {
   if(Math.random()<0.3){
     refreshAudioData(audio)
   }
-  
-  
-
-
-
-  
-
-  // canvas.width = body.offsetWidth;
-  // canvas.height = body.offsetHeight;
-
-  
+    
   // backgroundImage(ctx, images[0])
   drawElements(imageElements, ctx)
   

@@ -32,6 +32,7 @@ const globalCompositeOperations = [
 
 let triangles = [];
 let currentGCO = pickRandom(globalCompositeOperations);
+let minimumValToRender
 
 // Used to represent both points and vectors for simplicity
 class Vector {
@@ -177,16 +178,10 @@ class ThickRightTriangle extends Triangle {
   }
 }
 
-export function setupPenroseTiling(ctx, images) {
-  var rounds =  Math.floor(Math.random() * 8);
-  var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
-  currentGCO = pickRandom(globalCompositeOperations);
-  triangles.length = 0;
-
+function generateTriangles(ctx, init_shape, rounds){
+  let trianglesArray = []
   if (init_shape === "rhombus") {
-    var side = Math.min(ctx.canvas.width, ctx.canvas.width);
-    var ratio = Math.sin(36 * (Math.PI / 180)) / Math.sin(54 * (Math.PI / 180));
-
+    var side = ctx.canvas.width
 
     var t1 = new ThickRightTriangle(
       new Vector(side / 2.0, 0),
@@ -198,33 +193,33 @@ export function setupPenroseTiling(ctx, images) {
       new Vector(0, ctx.canvas.height / 2),
       new Vector(side, ctx.canvas.height / 2)
     );
-    triangles.push(t1);
-    triangles.push(t2);
+    trianglesArray.push(t1);
+    trianglesArray.push(t2);
   }
 
   if (init_shape === "rectangle") {
-    var side = Math.min(canvas.width, canvas.height);
+    var side = Math.min(ctx.canvas.width, ctx.canvas.height);
 
     var t1 = new ThinLeftTriangle(
       new Vector(0, 0),
-      new Vector(canvas.width, canvas.height),
-      new Vector(canvas.width, 0)
+      new Vector(ctx.canvas.width, ctx.canvas.height),
+      new Vector(ctx.canvas.width, 0)
     );
     var t2 = new ThinLeftTriangle(
-      new Vector(canvas.width, canvas.height),
-      new Vector(0, canvas.height),
+      new Vector(ctx.canvas.width, ctx.canvas.height),
+      new Vector(0, ctx.canvas.height),
       new Vector(0, 0)
     );
 
-    triangles.push(t1);
-    triangles.push(t2);
+    trianglesArray.push(t1);
+    trianglesArray.push(t2);
   }
 
   if (init_shape === 'circle') {
-    var side = Math.min(canvas.width, canvas.height);
+    var side = Math.min(ctx.canvas.width, ctx.canvas.height);
     var r = side / 2.0;
     var grad_increment = 36 * (Math.PI / 180);
-    var center = new Vector(canvas.width / 2.0, canvas.height / 2.0);
+    var center = new Vector(ctx.canvas.width / 2.0, ctx.canvas.height / 2.0);
     for (var i = 0; i < 10; i++) {
         var v1 = center.add(new Vector(Math.cos(grad_increment * i), Math.sin(grad_increment * i)).multiply(r));
         var v2 = center.add(new Vector(Math.cos(grad_increment * (i+1)), Math.sin(grad_increment * (i+1))).multiply(r));
@@ -236,56 +231,68 @@ export function setupPenroseTiling(ctx, images) {
         }
 
         var trig = new trig_class(center, v2, v1);
-        triangles.push(trig);
+        trianglesArray.push(trig);
     }
 }
 
   for (var round = 0; round < rounds; round++) {
     var new_triangles = [];
 
-    for (var i = 0; i < triangles.length; i++) {
-      var trig = triangles[i];
+    for (var i = 0; i < trianglesArray.length; i++) {
+      var trig = trianglesArray[i];
       new_triangles = new_triangles.concat(trig.split());
     }
 
-    triangles = new_triangles;
+    trianglesArray = new_triangles;
   }
 
-  const keys = ["yellow", "blue", "green", "red"];
-  triangles = keys.map(key => {
+  return trianglesArray
+}
+
+export function setupPenroseTiling(ctx, images) {
+  var rounds =   Math.floor(Math.random() * 8);
+  var init_shape = pickRandom(["rectangle", "rhombus", "circle"]);
+  currentGCO = pickRandom(globalCompositeOperations);
+
+  triangles.length = 0;
+  triangles = generateTriangles(ctx, init_shape, rounds)
+  triangles = Object.values(groupBy(triangles, "fillColor"))
+
+  minimumValToRender  = pickRandom([ 130])
+  triangles = triangles.map(arr => {
     return {
-      triangles: triangles.filter(i => i.fillColor === key),
-      image: pickRandom(images)
+      triangles: arr,
+      rendered: [],
+      image: pickRandom(images),
+      gcu: pickRandom(globalCompositeOperations)
     };
   });
 
 }
 
 export function drawPenroseTiling(ctx, x, audio) {
-  // if (Math.random() < 0.3) return;
+  const MIN_VALUE_TO_CHANGE_SCENE = 20
+  const PROBABILITY_GCO_CHANGE = 0.3
+
   ctx.save();
   ctx.globalCompositeOperation = currentGCO
   ctx.strokeStyle = "rgba(1, 1, 1, 0)";
 
-  if (audio.domainArray[0] - 128 > 20) {
-    if(Math.random() < 0.3) {
+  if (audio.domainArray[0] - 128 > MIN_VALUE_TO_CHANGE_SCENE) {
+    if(Math.random() < PROBABILITY_GCO_CHANGE) {
       currentGCO = pickRandom(globalCompositeOperations);
     }
-
     setupPenroseTiling(ctx, audio.images);
   } else {
     triangles.forEach(set => {
       let image = set.image;
-
-  
-
       ctx.beginPath();
       if (!set.triangles || set.triangles.length === 0) return;
       set.triangles.forEach(function(t, i) {
         // ctx.save();
         // const scale = audio.domainArray[i]/128
         // ctx.scale(scale*2, scale*2)
-        const diff = audio.domainArray[i] > 110;
+        const diff = audio.domainArray[i] > minimumValToRender;
         if (diff) {
           t.draw(ctx);
         }
@@ -305,35 +312,82 @@ export function drawPenroseTiling(ctx, x, audio) {
         canvas.width,
         canvas.height
       );
-
       // ctx.restore();
     });
   }
-  // ctx.restore();
-  // const img2 = pickRandom(images)
-  // ctx.save();
-  // ctx.beginPath();
-  // triangles.blue.forEach(function(t) {
-  //   t.draw(ctx);
-  // });
-
-  // ctx.clip();
-
-  // ctx.drawImage(
-  //   img2,
-  //   0,
-  //   0,
-  //   img2.width,
-  //   img2.height,
-  //   0,
-  //   0,
-  //   canvas.width,
-  //   canvas.height
-  // );
   ctx.restore();
 }
 
 
+export function drawSequentialPenroseTiling(ctx, x, audio) {
+  const MIN_VALUE_TO_CHANGE_SCENE = 153
+  const PROBABILITY_GCO_CHANGE = 0.7
+
+  ctx.save();
+  ctx.globalCompositeOperation = currentGCO
+  ctx.strokeStyle = "rgba(1, 1, 1, 0)";
+
+  if (audio.domainArray[0] > MIN_VALUE_TO_CHANGE_SCENE) {
+    if(Math.random() < PROBABILITY_GCO_CHANGE) {
+      currentGCO = pickRandom(globalCompositeOperations);
+    }
+    setupPenroseTiling(ctx, audio.images);
+  } else {
+    triangles.forEach(set => {
+
+   
+      // ctx.globalCompositeOperation = set.gcu
+      let image = set.image;
+      // let trianglesLength = set.triangles.length
+      ctx.beginPath();
+
+      const diff = audio.domainArray[0] > minimumValToRender;
+      if (diff && set.triangles.length > 0) {
+        set.rendered.push(set.triangles.pop())
+      }
+     
+      if (!set.triangles || !set.rendered || set.rendered.length === 0 ) return;
+  
+
+      set.rendered.forEach(function(t, i) {
+        
+          t.draw(ctx);
+      });
+
+
+
+      
+
+      ctx.clip();
+
+      ctx.drawImage(
+        image,
+        0,
+        0,
+        image.width,
+        image.height,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+      // ctx.restore();
+    });
+  }
+  ctx.restore();
+}
+
+
+
 function sortByX(a, b){
   return Math.min(a.v1.x, a.v2.x, a.v3.x) - Math.min(b.v1.x, b.v2.x, b.v3.x)
+}
+
+function groupBy(arr, property){
+  return arr.reduce(function (r, a) {
+    const type = a[property]
+    r[type] = r[type] || [];
+    r[type].push(a);
+    return r;
+}, Object.create(null));
 }
