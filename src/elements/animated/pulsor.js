@@ -6,16 +6,21 @@ export class Pulsor {
     this.id = id;
     this.position = position;
     this.growthRate = options.growthRate || 4;
-    this.pulsePeriod = options.pulsePeriod || 32;
-    this.numPulseThreshold = options.numPulseThreshold || 10;
+    this.pulsePeriod = options.pulsePeriod || 8;
+    this.numPulseThreshold = options.numPulseThreshold || 3;
     this.sizePulseThreshold = options.sizePulseThreshold || 150;
-    this.pulses = [new Pulse(0)];
+    this.options = options;
+
+    this.growthCount = 0;
+    this.pulseCount = 0;
+    this.pulses = [];
     this.stopPulsing = false;
+    this.pulse();
   }
 
   pulse() {
-    if(this.stopPulsing) { return; }
     this.pulses.push(new Pulse(0));
+    this.pulseCount += 1;
   }
 
   isDead() {
@@ -26,14 +31,31 @@ export class Pulsor {
     this.pulses.splice(index, 1);
   }
 
+  timeToRePulse() {
+    if (this.pulsePeriod === undefined) { return false; }
+    if (this.options.autoRePulse === undefined) { return false; }
+    return this.growthCount % this.pulsePeriod === 0
+  }
+
+  timeToStopPulsing() {
+    if (this.numPulseThreshold === undefined) { return false; }
+    return this.pulseCount > this.numPulseThreshold;
+  }
+
+  timeToKillPulse(pulse) {
+    if (this.sizePulseThreshold === undefined) { return false; }
+    return pulse.size > this.sizePulseThreshold;
+  }
+
   grow() {
+    this.growthCount += 1;
     for(const [index, pulse] of this.pulses.entries()) {
       pulse.grow(this.growthRate);
-
-      if (pulse.size % this.pulsePeriod === 0) { this.pulse(); }
-      if (this.pulses.length > this.numPulseThreshold) { this.stopPulsing = true; }
-      if (pulse.size > this.sizePulseThreshold) { this.killPulse(index); }
+      if(this.timeToKillPulse(pulse)) { this.killPulse(index); }
     }
+
+    //if(this.timeToStopPulsing()) { this.stopPulsing = true ; }
+    if(this.timeToRePulse() && !this.stopPulsing) { this.pulse(); }
   }
 
   drawPulses(ctx, img, audio) {
@@ -48,7 +70,6 @@ export class Pulsor {
     ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.restore();
     ctx.restore();
-    this.grow();
   }
 }
 

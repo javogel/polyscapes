@@ -6,6 +6,20 @@ import { Vector } from "./elements/vector";
 let movingBalls = [];
 let pulsors = [];
 
+export function setupPulsors(ctx, _images) {
+  var point1 = new Vector(ctx.canvas.width * 0.2, ctx.canvas.height * 0.2);
+  var point2 = new Vector(ctx.canvas.width * 0.8, ctx.canvas.height * 0.2);
+  var point3 = new Vector(ctx.canvas.width * 0.2, ctx.canvas.height * 0.8);
+  var point4 = new Vector(ctx.canvas.width * 0.8, ctx.canvas.height * 0.8);
+  var point5 = new Vector(ctx.canvas.width * 0.5, ctx.canvas.height * 0.5);
+
+  pulsors.push(new Pulsor(0, point1));
+  pulsors.push(new Pulsor(1, point2));
+  pulsors.push(new Pulsor(2, point3));
+  pulsors.push(new Pulsor(3, point4));
+  pulsors.push(new Pulsor(4, point5));
+}
+
 export function setupMovingObjets(ctx, _images) {
   let numBalls = Math.floor(Math.random() * 10);
   let i = 0;
@@ -63,6 +77,7 @@ export function drawPulses(ctx, img, audio) {
   for(const [index, pulsor] of pulsors.entries()) {
     pulsor.drawPulses(ctx, img, audio);
     pulsor.grow();
+    if (audio.domainArray[0] > 132) { pulsor.pulse(); }
     if (pulsor.isDead()) { pulsors.splice(index, 1); }
   }
 }
@@ -93,9 +108,6 @@ function executeCollisionBall(ball) {
 
     ball.velocity = newVelocityA;
     movingBalls[i].velocity = newVelocityB;
-
-    let collisionMagnitude = MovingBall.collisionMagnitude(ball, movingBalls[i]);
-    console.log("collision magnitude " + collisionMagnitude);
 
     pulsors.push(new Pulsor(pulsors.length, collisionPoint));
   }

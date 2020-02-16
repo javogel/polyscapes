@@ -583,7 +583,8 @@ function () {
     this.id = id;
     this.position = position;
     this.growthRate = options.growthRate || 4;
-    this.pulsePeriod = options.pulsePeriod || 32;
+    this.pulsePeriod = options.pulsePeriod || 8;
+    this.numGrowths = 0;
     this.numPulseThreshold = options.numPulseThreshold || 10;
     this.sizePulseThreshold = options.sizePulseThreshold || 150;
     this.pulses = [new Pulse(0)];
@@ -610,8 +611,14 @@ function () {
       this.pulses.splice(index, 1);
     }
   }, {
+    key: "crossingPulseThreshold",
+    value: function crossingPulseThreshold() {
+      return this.numPulseThreshold != undefined && this.pulses.length > this.numPulseThreshold;
+    }
+  }, {
     key: "grow",
     value: function grow() {
+      //this.numGrowths += 1;
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
@@ -622,15 +629,8 @@ function () {
               index = _step$value[0],
               pulse = _step$value[1];
 
-          pulse.grow(this.growthRate);
-
-          if (pulse.size % this.pulsePeriod === 0) {
-            this.pulse();
-          }
-
-          if (this.pulses.length > this.numPulseThreshold) {
-            this.stopPulsing = true;
-          }
+          pulse.grow(this.growthRate); //if (this.numGrowths % this.pulsePeriod === 0) { this.pulse(); }
+          //if (this.crossingPulseThreshold()) { this.stopPulsing = true; }
 
           if (pulse.size > this.sizePulseThreshold) {
             this.killPulse(index);
@@ -721,65 +721,17 @@ function () {
 
 var movingBalls = [];
 var pulsors = [];
-function setupMovingObjets(ctx, _images) {
-  var numBalls = Math.floor(Math.random() * 10);
-  var i = 0;
-
-  while (i < numBalls) {
-    var velocity = new Vector$1(Math.floor(Math.random() * 10), Math.floor(Math.random() * 10));
-    var radius = Math.random() * 150;
-    var startingPoint = new Vector$1(Math.floor(Math.random() * ctx.canvas.width), Math.floor(Math.random() * ctx.canvas.height));
-
-    if (startingPoint.x - radius < 0) {
-      startingPoint.x += radius;
-    }
-
-    if (startingPoint.x + radius > ctx.canvas.width) {
-      startingPoint.x -= radius;
-    }
-
-    if (startingPoint.y - radius < 0) {
-      startingPoint.y += radius;
-    }
-
-    if (startingPoint.y + radius > ctx.canvas.height) {
-      startingPoint.y -= radius;
-    }
-
-    var newBall = new MovingBall(i, radius, startingPoint, velocity);
-    var collision = false;
-    var _iteratorNormalCompletion = true;
-    var _didIteratorError = false;
-    var _iteratorError = undefined;
-
-    try {
-      for (var _iterator = movingBalls[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-        var ball = _step.value;
-
-        if (MovingBall.touching(ball, newBall)) {
-          collision = true;
-        }
-      }
-    } catch (err) {
-      _didIteratorError = true;
-      _iteratorError = err;
-    } finally {
-      try {
-        if (!_iteratorNormalCompletion && _iterator["return"] != null) {
-          _iterator["return"]();
-        }
-      } finally {
-        if (_didIteratorError) {
-          throw _iteratorError;
-        }
-      }
-    }
-
-    if (!collision) {
-      i++;
-      movingBalls.push(newBall);
-    }
-  }
+function setupPulsors(ctx, _images) {
+  var point1 = new Vector$1(ctx.canvas.width * 0.2, ctx.canvas.height * 0.2);
+  var point2 = new Vector$1(ctx.canvas.width * 0.8, ctx.canvas.height * 0.2);
+  var point3 = new Vector$1(ctx.canvas.width * 0.2, ctx.canvas.height * 0.8);
+  var point4 = new Vector$1(ctx.canvas.width * 0.8, ctx.canvas.height * 0.8);
+  var point5 = new Vector$1(ctx.canvas.width * 0.5, ctx.canvas.height * 0.5);
+  pulsors.push(new Pulsor(0, point1));
+  pulsors.push(new Pulsor(1, point2));
+  pulsors.push(new Pulsor(2, point3));
+  pulsors.push(new Pulsor(3, point4));
+  pulsors.push(new Pulsor(4, point5));
 }
 function drawMovingBalls(ctx, img, audio) {
   ctx.save();
@@ -828,6 +780,10 @@ function drawPulses(ctx, img, audio) {
 
       pulsor.drawPulses(ctx, img, audio);
       pulsor.grow();
+
+      if (audio.domainArray[0] > 132) {
+        pulsor.pulse();
+      }
 
       if (pulsor.isDead()) {
         pulsors.splice(index, 1);
@@ -1007,8 +963,9 @@ function setUpPolyscape() {
   canvas.width = body.offsetWidth;
   canvas.height = body.offsetHeight;
   setupPenroseTiling(ctx, images);
-  setupSequentialPenroseTiling(ctx, images);
-  setupMovingObjets(ctx);
+  setupSequentialPenroseTiling(ctx, images); //setupMovingObjets(ctx, images);
+
+  setupPulsors(ctx);
   requestAnimationFrame(draw);
 }
 
