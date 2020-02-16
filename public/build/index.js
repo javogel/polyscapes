@@ -69,6 +69,48 @@ function _possibleConstructorReturn(self, call) {
   return _assertThisInitialized(self);
 }
 
+function _slicedToArray(arr, i) {
+  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
+}
+
+function _arrayWithHoles(arr) {
+  if (Array.isArray(arr)) return arr;
+}
+
+function _iterableToArrayLimit(arr, i) {
+  if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) {
+    return;
+  }
+
+  var _arr = [];
+  var _n = true;
+  var _d = false;
+  var _e = undefined;
+
+  try {
+    for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+      _arr.push(_s.value);
+
+      if (i && _arr.length === i) break;
+    }
+  } catch (err) {
+    _d = true;
+    _e = err;
+  } finally {
+    try {
+      if (!_n && _i["return"] != null) _i["return"]();
+    } finally {
+      if (_d) throw _e;
+    }
+  }
+
+  return _arr;
+}
+
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance");
+}
+
 //
 // UTILITIES 
 //
@@ -386,78 +428,6 @@ function setupSequentialPenroseTiling(ctx, images) {
     };
   });
 }
-function drawPenroseTiling(ctx, x, audio) {
-  var MIN_VALUE_TO_CHANGE_SCENE = 20;
-  var PROBABILITY_GCO_CHANGE = 0.3;
-  ctx.save();
-  ctx.globalCompositeOperation = currentGCO;
-  ctx.strokeStyle = "rgba(1, 1, 1, 0)";
-
-  if (audio.domainArray[0] - 128 > MIN_VALUE_TO_CHANGE_SCENE) {
-    if (Math.random() < PROBABILITY_GCO_CHANGE) {
-      currentGCO = pickRandom(globalCompositeOperations);
-    }
-
-    setupPenroseTiling(ctx, audio.images);
-  } else {
-    triangles.forEach(function (set) {
-      var image = set.image;
-      ctx.beginPath();
-      if (!set.triangles || set.triangles.length === 0) return;
-      set.triangles.forEach(function (t, i) {
-        // ctx.save();
-        // const scale = audio.domainArray[i]/128
-        // ctx.scale(scale*2, scale*2)
-        var enabled = audio.domainArray[i] > minimumValToRender;
-
-        if (enabled) {
-          t.draw(ctx);
-        } // ctx.restore();
-
-      });
-      ctx.clip();
-      ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height); // ctx.restore();
-    });
-  }
-
-  ctx.restore();
-}
-function drawSequentialPenroseTiling(ctx, x, audio) {
-  var MIN_VALUE_TO_CHANGE_SCENE = 153;
-  var PROBABILITY_GCO_CHANGE = 0.7;
-  ctx.save();
-  ctx.globalCompositeOperation = currentGCO;
-  ctx.strokeStyle = "rgba(1, 1, 1, 0)";
-
-  if (audio.domainArray[0] > MIN_VALUE_TO_CHANGE_SCENE) {
-    if (Math.random() < PROBABILITY_GCO_CHANGE) {
-      currentGCO = pickRandom(globalCompositeOperations);
-    }
-
-    setupSequentialPenroseTiling(ctx, audio.images);
-  } else {
-    sequentialTriangles.forEach(function (set) {
-      // ctx.globalCompositeOperation = set.gcu
-      var image = set.image; // let trianglesLength = set.triangles.length
-
-      ctx.beginPath();
-      var diff = audio.domainArray[0] > minimumValToRender;
-
-      if (diff && set.triangles.length > 0) {
-        set.rendered.push(set.triangles.pop());
-      }
-
-      if (!set.triangles || !set.rendered || set.rendered.length === 0) return;
-      set.rendered.forEach(function (t, i) {
-        t.draw(ctx);
-      });
-      ctx.clip();
-      ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height); // ctx.restore();
-    });
-  }
-
-  ctx.restore();
-}
 
 function groupBy(arr, property) {
   return arr.reduce(function (r, a) {
@@ -466,6 +436,252 @@ function groupBy(arr, property) {
     r[type].push(a);
     return r;
   }, Object.create(null));
+}
+
+var Vector$1 =
+/*#__PURE__*/
+function () {
+  function Vector(x, y) {
+    _classCallCheck(this, Vector);
+
+    this.x = x;
+    this.y = y;
+  }
+
+  _createClass(Vector, [{
+    key: "multiply",
+    value: function multiply(multiplier) {
+      return new Vector(this.x * multiplier, this.y * multiplier);
+    }
+  }, {
+    key: "add",
+    value: function add(anotherVector) {
+      return new Vector(this.x + anotherVector.x, this.y + anotherVector.y);
+    }
+  }, {
+    key: "magnitude",
+    value: function magnitude() {
+      return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+  }], [{
+    key: "fromPoints",
+    value: function fromPoints(start, end) {
+      return new Vector(end.x - start.x, end.y - start.y);
+    }
+  }]);
+
+  return Vector;
+}();
+
+var MovingBall =
+/*#__PURE__*/
+function () {
+  function MovingBall(id, radius, position, velocity) {
+    _classCallCheck(this, MovingBall);
+
+    this.id = id;
+    this.radius = radius;
+    this.position = position;
+    this.velocity = velocity;
+    this.mass = Math.PI * this.radius * this.radius; // Set mass to the area
+  }
+
+  _createClass(MovingBall, [{
+    key: "move",
+    value: function move() {
+      this.position.x = this.position.x + this.velocity.x;
+      this.position.y = this.position.y + this.velocity.y;
+    }
+  }, {
+    key: "angle",
+    value: function angle() {
+      return Math.atan2(this.velocity.y, this.velocity.x);
+    }
+  }], [{
+    key: "delta",
+    value: function delta(ballA, ballB) {
+      var deltaX = ballB.position.x - ballA.position.x;
+      var deltaY = ballB.position.y - ballA.position.y;
+      return new Vector$1(deltaX, deltaY);
+    }
+  }, {
+    key: "checkCollision",
+    value: function checkCollision(ballA, ballB) {
+      var collisionDistance = ballA.radius + ballB.radius;
+      var distance = MovingBall.delta(ballA, ballB).magnitude();
+      return distance < collisionDistance;
+    }
+  }, {
+    key: "collisionAngle",
+    value: function collisionAngle(ballA, ballB) {
+      var delta = MovingBall.delta(ballA, ballB);
+      return Math.atan2(delta.y, delta.x);
+    }
+  }, {
+    key: "calculateCollisionVelocities",
+    value: function calculateCollisionVelocities(ballA, ballB) {
+      var collisionAngle = MovingBall.collisionAngle(ballA, ballB);
+      var speedA = ballA.velocity.magnitude();
+      var speedB = ballB.velocity.magnitude();
+      var angleA = ballA.angle();
+      var angleB = ballB.angle();
+      var collisionSpeedA = (speedA * Math.cos(angleA - collisionAngle) * (ballA.mass - ballB.mass) + 2 * ballB.mass * speedB * Math.cos(angleB - collisionAngle)) / (ballA.mass + ballB.mass);
+      var collisionSpeedB = (speedB * Math.cos(angleB - collisionAngle) * (ballB.mass - ballA.mass) + 2 * ballA.mass * speedA * Math.cos(angleA - collisionAngle)) / (ballB.mass + ballA.mass);
+      var newVelocityA = new Vector$1(collisionSpeedA * Math.cos(collisionAngle) + speedA * Math.sin(angleA - collisionAngle) * Math.cos(collisionAngle + Math.PI / 2), collisionSpeedA * Math.sin(collisionAngle) + speedA * Math.sin(angleA - collisionAngle) * Math.sin(collisionAngle + Math.PI / 2));
+      var newVelocityB = new Vector$1(collisionSpeedB * Math.cos(collisionAngle) + speedB * Math.sin(angleB - collisionAngle) * Math.cos(collisionAngle + Math.PI / 2), collisionSpeedB * Math.sin(collisionAngle) + speedB * Math.sin(angleB - collisionAngle) * Math.sin(collisionAngle + Math.PI / 2));
+      return [newVelocityA, newVelocityB];
+    }
+  }, {
+    key: "collisionPoint",
+    value: function collisionPoint(ballA, ballB) {
+      var collisionAngle = MovingBall.collisionAngle(ballA, ballB);
+      return new Vector$1(ballA.position.x + ballA.radius * Math.cos(collisionAngle), ballA.position.y + ballA.radius * Math.sin(collisionAngle));
+    }
+  }]);
+
+  return MovingBall;
+}();
+
+var movingBalls = [];
+function setupMovingObjets(ctx, _images) {
+  var numBalls = Math.floor(Math.random() * 6);
+  var i = 0;
+
+  while (i < numBalls) {
+    var velocity = new Vector$1(Math.floor(Math.random() * 10), Math.floor(Math.random() * 10));
+    var radius = Math.random() * 150;
+    var startingPoint = new Vector$1(Math.floor(Math.random() * ctx.canvas.width), Math.floor(Math.random() * ctx.canvas.height));
+
+    if (startingPoint.x - radius < 0) {
+      startingPoint.x += radius;
+    }
+
+    if (startingPoint.x + radius > ctx.canvas.width) {
+      startingPoint.x -= radius;
+    }
+
+    if (startingPoint.y - radius < 0) {
+      startingPoint.y += radius;
+    }
+
+    if (startingPoint.y + radius > ctx.canvas.height) {
+      startingPoint.y -= radius;
+    }
+
+    var newBall = new MovingBall(i, radius, startingPoint, velocity);
+    var collision = false;
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
+
+    try {
+      for (var _iterator = movingBalls[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        var ball = _step.value;
+
+        if (MovingBall.checkCollision(ball, newBall)) {
+          collision = true;
+        }
+      }
+    } catch (err) {
+      _didIteratorError = true;
+      _iteratorError = err;
+    } finally {
+      try {
+        if (!_iteratorNormalCompletion && _iterator["return"] != null) {
+          _iterator["return"]();
+        }
+      } finally {
+        if (_didIteratorError) {
+          throw _iteratorError;
+        }
+      }
+    }
+
+    if (!collision) {
+      i++;
+      movingBalls.push(newBall);
+    }
+  }
+}
+function drawMovingBalls(ctx, img, audio) {
+  ctx.save();
+  ctx.beginPath();
+  var _iteratorNormalCompletion2 = true;
+  var _didIteratorError2 = false;
+  var _iteratorError2 = undefined;
+
+  try {
+    for (var _iterator2 = movingBalls[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+      var ball = _step2.value;
+      ctx.moveTo(ball.position.x, ball.position.y);
+      ctx.arc(ball.position.x, ball.position.y, ball.radius, 0, 2 * Math.PI);
+      executeCollisionBall(ball, ctx);
+      executeCollisionWall(ball, ctx);
+      ball.move();
+    }
+  } catch (err) {
+    _didIteratorError2 = true;
+    _iteratorError2 = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
+        _iterator2["return"]();
+      }
+    } finally {
+      if (_didIteratorError2) {
+        throw _iteratorError2;
+      }
+    }
+  }
+  ctx.clip('evenodd');
+  ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.restore();
+}
+
+function executeCollisionWall(ball, ctx) {
+  var projectedPoint = new Vector$1(ball.position.x + ball.velocity.x, ball.position.y + ball.velocity.y);
+
+  if (projectedPoint.x > ctx.canvas.width - ball.radius || projectedPoint.x < ball.radius) {
+    ball.velocity.x = -ball.velocity.x;
+  }
+
+  if (projectedPoint.y > ctx.canvas.height - ball.radius || projectedPoint.y < ball.radius) {
+    ball.velocity.y = -ball.velocity.y;
+  }
+}
+
+function executeCollisionBall(ball) {
+  for (var i = ball.id; i < movingBalls.length; i++) {
+    if (!movingBalls[i]) {
+      continue;
+    }
+
+    if (ball.id === movingBalls[i].id) {
+      continue;
+    }
+
+    if (!MovingBall.checkCollision(ball, movingBalls[i])) {
+      continue;
+    }
+
+    console.log('collision detected!');
+
+    var _MovingBall$calculate = MovingBall.calculateCollisionVelocities(ball, movingBalls[i]),
+        _MovingBall$calculate2 = _slicedToArray(_MovingBall$calculate, 2),
+        newVelocityA = _MovingBall$calculate2[0],
+        newVelocityB = _MovingBall$calculate2[1];
+
+    ball.velocity = newVelocityA;
+    movingBalls[i].velocity = newVelocityB;
+
+    if (!ball.velocity) {
+      debugger;
+    }
+
+    if (!movingBalls[i].velocity) {
+      debugger;
+    }
+  }
 }
 
 //
@@ -515,112 +731,6 @@ function backgroundImage(ctx, img) {
   ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
 }
 
-function drawPolygon(ctx, centerX, centerY, img, time) {
-  var options = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : {};
-  var audio = arguments.length > 6 ? arguments[6] : undefined;
-  ctx.save();
-  ctx.translate(centerX, centerY);
-  var sides = options.sides;
-  var size = options.size || 500;
-  var radians = 0;
-
-  if (options.rotation) {
-    if (options.rotation.animated) {
-      radians = 2 * Math.PI / 6 * time.getSeconds() + 2 * Math.PI / 6000 * time.getMilliseconds();
-    }
-
-    if (options.rotation.direction == "counter-clockwise") {
-      radians = -radians;
-    }
-
-    if (options.rotation.offset) {
-      radians += options.rotation.offset;
-    }
-
-    ctx.rotate(radians);
-  }
-
-  ctx.beginPath(); //ctx.moveTo (size * Math.cos(0), size *  Math.sin(0));
-
-  if (options.sides == "circle") {
-    ctx.arc(0, 0, size, 0, 2 * Math.PI);
-  } else {
-    // ctx.moveTo(size/2 * Math.sin(0), size/2 * Math.cos(0));
-    for (var i = 1; i <= sides; i += 1) {
-      var vertexSize = size / 2 + Math.abs(audio.domainArray[i] - 128) * 2;
-      var x = Math.round(vertexSize * Math.sin(i * 2 * Math.PI / sides));
-      var y = Math.round(vertexSize * Math.cos(i * 2 * Math.PI / sides));
-
-      if (i === 1) {
-        ctx.moveTo(x, y);
-      }
-
-      ctx.lineTo(x, y);
-    }
-  }
-
-  if (options.outline) {
-    // We are making the same polygon but 90% of the size to create an 'outline' from the delta.
-    var innerPolygonSize = size * 0.45; //ctx.moveTo(innerPolygonSize * Math.cos(0), innerPolygonSize * Math.sin(0));
-
-    if (options.sides == "circle") {
-      ctx.arc(0, 0, innerPolygonSize, 0, 2 * Math.PI);
-    } else {
-      ctx.moveTo(innerPolygonSize * Math.sin(0), innerPolygonSize * Math.cos(0));
-
-      for (var i = 1; i <= sides; i += 1) {
-        var x = Math.round(innerPolygonSize * Math.sin(i * 2 * Math.PI / sides));
-        var y = Math.round(innerPolygonSize * Math.cos(i * 2 * Math.PI / sides));
-        ctx.lineTo(x, y);
-      }
-    }
-  } // NOTE: this is SUPER SUPER important for drawing outlines!!
-
-
-  ctx.clip("evenodd");
-
-  if (options.rotation) {
-    ctx.rotate(-radians);
-  }
-
-  ctx.translate(-centerX, -centerY);
-
-  if (!options.orbiting) {
-    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.restore();
-  }
-}
-
-function drawOscillator(ctx, img, audio) {
-  var time = new Date();
-  var cx = ctx.canvas.width / 2;
-  var cy = ctx.canvas.height / 2;
-  drawPolygon(ctx, cx, cy, img, time, {
-    sides: audio.domainArray.length,
-    size: 500,
-    rotation: {
-      offset: Math.PI * Math.random(),
-      animated: true
-    }
-  }, audio);
-}
-function drawOscillatorSmall(ctx, img, audio) {
-  var time = new Date();
-  var cx = ctx.canvas.width / 2;
-  var cy = ctx.canvas.height / 2;
-  ctx.save(); // ctx.globalCompositeOperation="color-burn"
-
-  drawPolygon(ctx, cx, cy, img, time, {
-    sides: audio.domainArray.length,
-    size: audio.domainArray[0] * 3,
-    rotation: {
-      offset: Math.PI * Math.random(),
-      animated: true
-    }
-  }, audio);
-  ctx.restore();
-}
-
 var images = shuffleArray(["forrest.jpeg", "desert.jpeg", // "gradient.jpeg",
 // "yosemite.jpeg",
 // "snow.jpeg",
@@ -631,8 +741,12 @@ var imageElements = [backgroundImage, //   verticalStripes,
 //   horizontalStripes,
 //   centeredCircle,
 // triangle,
-drawPenroseTiling, drawOscillator, drawSequentialPenroseTiling, drawOscillatorSmall // circleOrbit
-];
+//drawPenroseTiling,
+//drawOscillator,
+//drawSequentialPenroseTiling,
+//drawOscillatorSmall,
+// circleOrbit,
+drawMovingBalls];
 
 var audio = {
   domainArray: null,
@@ -688,6 +802,7 @@ function setUpPolyscape() {
   canvas.height = body.offsetHeight;
   setupPenroseTiling(ctx, images);
   setupSequentialPenroseTiling(ctx, images);
+  setupMovingObjets(ctx);
   requestAnimationFrame(draw);
 }
 

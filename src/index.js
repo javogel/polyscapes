@@ -4,6 +4,7 @@ import {
   setupPenroseTiling,
   setupSequentialPenroseTiling
 } from "./penrose";
+import { setupMovingObjets, drawMovingBalls } from "./moving_objects";
 import { onDocumentReady, pickRandom, shuffleArray } from "./utils";
 import { setupAudio, refreshAudioData } from "./audio";
 import { centeredCircle, backgroundImage, triangle } from "./elements/static";
@@ -35,12 +36,13 @@ const imageElements = [
   //   horizontalStripes,
   //   centeredCircle,
   // triangle,
-  drawPenroseTiling,
-  drawOscillator,
+  //drawPenroseTiling,
+  //drawOscillator,
 
-  drawSequentialPenroseTiling,
-  drawOscillatorSmall,
-  // circleOrbit
+  //drawSequentialPenroseTiling,
+  //drawOscillatorSmall,
+  // circleOrbit,
+  drawMovingBalls
 ];
 
 let userInteracted = false;
@@ -106,6 +108,7 @@ function setUpPolyscape() {
 
   setupPenroseTiling(ctx, images);
   setupSequentialPenroseTiling(ctx, images);
+  setupMovingObjets(ctx, images);
 
   requestAnimationFrame(draw);
 }
