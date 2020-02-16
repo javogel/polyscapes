@@ -1,8 +1,10 @@
 import { pickRandom } from "./utils";
 import { MovingBall } from "./elements/animated/moving_ball";
+import { Pulsor } from "./elements/animated/pulsor";
 import { Vector } from "./elements/vector";
 
 let movingBalls = [];
+let pulsors = [];
 
 export function setupMovingObjets(ctx, _images) {
   let numBalls = Math.floor(Math.random() * 10);
@@ -57,6 +59,14 @@ export function drawMovingBalls(ctx, img, audio) {
   ctx.restore();
 }
 
+export function drawPulses(ctx, img, audio) {
+  for(const [index, pulsor] of pulsors.entries()) {
+    pulsor.drawPulses(ctx, img, audio);
+    pulsor.grow();
+    if (pulsor.isDead()) { pulsors.splice(index, 1); }
+  }
+}
+
 function executeCollisionWall(ball, ctx) {
     let projectedPoint = new Vector(
       ball.position.x + ball.velocity.x,
@@ -78,14 +88,15 @@ function executeCollisionBall(ball) {
     if (ball.id === movingBalls[i].id) { continue; }
     if (!MovingBall.checkCollision(ball, movingBalls[i])) { continue; }
 
-    console.log('collision detected!');
-
+    let collisionPoint = MovingBall.collisionPoint(ball, movingBalls[i]);
     let [newVelocityA, newVelocityB] = MovingBall.calculateCollisionVelocities(ball, movingBalls[i]);
 
     ball.velocity = newVelocityA;
     movingBalls[i].velocity = newVelocityB;
 
-    if(!ball.velocity) { debugger }
-    if(!movingBalls[i].velocity) { debugger }
+    let collisionMagnitude = MovingBall.collisionMagnitude(ball, movingBalls[i]);
+    console.log("collision magnitude " + collisionMagnitude);
+
+    pulsors.push(new Pulsor(pulsors.length, collisionPoint));
   }
 }

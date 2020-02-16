@@ -64,8 +64,12 @@ export class MovingBall {
     return Math.atan2(delta.y, delta.x);
   }
 
+  static collisionMagnitude(ballA, ballB) {
+    return MovingBall.dotProduct(ballA, ballB) / MovingBall.distanceSquared(ballA, ballB);
+  }
+
   static calculateCollisionVelocities(ballA, ballB) {
-    let collisionMagnitude = MovingBall.dotProduct(ballA, ballB) / MovingBall.distanceSquared(ballA, ballB);
+    let collisionMagnitude = MovingBall.collisionMagnitude(ballA, ballB);
     let collisionVector = new Vector(
       (ballA.position.x - ballB.position.x) * collisionMagnitude,
       (ballA.position.y - ballB.position.y) * collisionMagnitude,

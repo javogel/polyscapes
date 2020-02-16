@@ -543,9 +543,14 @@ function () {
       return Math.atan2(delta.y, delta.x);
     }
   }, {
+    key: "collisionMagnitude",
+    value: function collisionMagnitude(ballA, ballB) {
+      return MovingBall.dotProduct(ballA, ballB) / MovingBall.distanceSquared(ballA, ballB);
+    }
+  }, {
     key: "calculateCollisionVelocities",
     value: function calculateCollisionVelocities(ballA, ballB) {
-      var collisionMagnitude = MovingBall.dotProduct(ballA, ballB) / MovingBall.distanceSquared(ballA, ballB);
+      var collisionMagnitude = MovingBall.collisionMagnitude(ballA, ballB);
       var collisionVector = new Vector$1((ballA.position.x - ballB.position.x) * collisionMagnitude, (ballA.position.y - ballB.position.y) * collisionMagnitude);
       var combinedMass = ballA.mass + ballB.mass;
       var collisionRatioA = 2 * ballB.mass / combinedMass;
@@ -567,7 +572,155 @@ function () {
   return MovingBall;
 }();
 
+var Pulsor =
+/*#__PURE__*/
+function () {
+  function Pulsor(id, position) {
+    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
+    _classCallCheck(this, Pulsor);
+
+    this.id = id;
+    this.position = position;
+    this.growthRate = options.growthRate || 4;
+    this.pulsePeriod = options.pulsePeriod || 32;
+    this.numPulseThreshold = options.numPulseThreshold || 10;
+    this.sizePulseThreshold = options.sizePulseThreshold || 150;
+    this.pulses = [new Pulse(0)];
+    this.stopPulsing = false;
+  }
+
+  _createClass(Pulsor, [{
+    key: "pulse",
+    value: function pulse() {
+      if (this.stopPulsing) {
+        return;
+      }
+
+      this.pulses.push(new Pulse(0));
+    }
+  }, {
+    key: "isDead",
+    value: function isDead() {
+      return this.stopPulsing && this.pulses.length === 0;
+    }
+  }, {
+    key: "killPulse",
+    value: function killPulse(index) {
+      this.pulses.splice(index, 1);
+    }
+  }, {
+    key: "grow",
+    value: function grow() {
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = this.pulses.entries()[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var _step$value = _slicedToArray(_step.value, 2),
+              index = _step$value[0],
+              pulse = _step$value[1];
+
+          pulse.grow(this.growthRate);
+
+          if (pulse.size % this.pulsePeriod === 0) {
+            this.pulse();
+          }
+
+          if (this.pulses.length > this.numPulseThreshold) {
+            this.stopPulsing = true;
+          }
+
+          if (pulse.size > this.sizePulseThreshold) {
+            this.killPulse(index);
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator["return"] != null) {
+            _iterator["return"]();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+    }
+  }, {
+    key: "drawPulses",
+    value: function drawPulses(ctx, img, audio) {
+      ctx.save();
+      ctx.translate(this.position.x, this.position.y);
+      ctx.beginPath();
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = this.pulses[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var pulse = _step2.value;
+          pulse.draw(ctx, img, audio, this.growthRate);
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
+            _iterator2["return"]();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
+      }
+
+      ctx.clip('evenodd');
+      ctx.translate(-this.position.x, -this.position.y);
+      ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.restore();
+      ctx.restore();
+      this.grow();
+    }
+  }]);
+
+  return Pulsor;
+}();
+
+var Pulse =
+/*#__PURE__*/
+function () {
+  function Pulse(size) {
+    _classCallCheck(this, Pulse);
+
+    this.size = size;
+  }
+
+  _createClass(Pulse, [{
+    key: "grow",
+    value: function grow(delta) {
+      this.size += delta;
+    }
+  }, {
+    key: "draw",
+    value: function draw(ctx, img, audio, growthRate) {
+      var differential = Math.min(this.size * 0.05, growthRate);
+      ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
+      ctx.arc(0, 0, this.size - differential, 0, 2 * Math.PI);
+    }
+  }]);
+
+  return Pulse;
+}();
+
 var movingBalls = [];
+var pulsors = [];
 function setupMovingObjets(ctx, _images) {
   var numBalls = Math.floor(Math.random() * 10);
   var i = 0;
@@ -662,6 +815,39 @@ function drawMovingBalls(ctx, img, audio) {
   ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.restore();
 }
+function drawPulses(ctx, img, audio) {
+  var _iteratorNormalCompletion3 = true;
+  var _didIteratorError3 = false;
+  var _iteratorError3 = undefined;
+
+  try {
+    for (var _iterator3 = pulsors.entries()[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+      var _step3$value = _slicedToArray(_step3.value, 2),
+          index = _step3$value[0],
+          pulsor = _step3$value[1];
+
+      pulsor.drawPulses(ctx, img, audio);
+      pulsor.grow();
+
+      if (pulsor.isDead()) {
+        pulsors.splice(index, 1);
+      }
+    }
+  } catch (err) {
+    _didIteratorError3 = true;
+    _iteratorError3 = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
+        _iterator3["return"]();
+      }
+    } finally {
+      if (_didIteratorError3) {
+        throw _iteratorError3;
+      }
+    }
+  }
+}
 
 function executeCollisionWall(ball, ctx) {
   var projectedPoint = new Vector$1(ball.position.x + ball.velocity.x, ball.position.y + ball.velocity.y);
@@ -689,7 +875,7 @@ function executeCollisionBall(ball) {
       continue;
     }
 
-    console.log('collision detected!');
+    var collisionPoint = MovingBall.collisionPoint(ball, movingBalls[i]);
 
     var _MovingBall$calculate = MovingBall.calculateCollisionVelocities(ball, movingBalls[i]),
         _MovingBall$calculate2 = _slicedToArray(_MovingBall$calculate, 2),
@@ -698,14 +884,9 @@ function executeCollisionBall(ball) {
 
     ball.velocity = newVelocityA;
     movingBalls[i].velocity = newVelocityB;
-
-    if (!ball.velocity) {
-      debugger;
-    }
-
-    if (!movingBalls[i].velocity) {
-      debugger;
-    }
+    var collisionMagnitude = MovingBall.collisionMagnitude(ball, movingBalls[i]);
+    console.log("collision magnitude " + collisionMagnitude);
+    pulsors.push(new Pulsor(pulsors.length, collisionPoint));
   }
 }
 
@@ -771,7 +952,7 @@ var imageElements = [backgroundImage, //   verticalStripes,
 //drawSequentialPenroseTiling,
 //drawOscillatorSmall,
 // circleOrbit,
-drawMovingBalls];
+drawPulses, drawMovingBalls];
 
 var audio = {
   domainArray: null,

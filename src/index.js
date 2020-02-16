@@ -4,7 +4,7 @@ import {
   setupPenroseTiling,
   setupSequentialPenroseTiling
 } from "./penrose";
-import { setupMovingObjets, drawMovingBalls } from "./moving_objects";
+import { setupMovingObjets, drawMovingBalls, drawPulses } from "./moving_objects";
 import { onDocumentReady, pickRandom, shuffleArray } from "./utils";
 import { setupAudio, refreshAudioData } from "./audio";
 import { centeredCircle, backgroundImage, triangle } from "./elements/static";
@@ -42,6 +42,7 @@ const imageElements = [
   //drawSequentialPenroseTiling,
   //drawOscillatorSmall,
   // circleOrbit,
+  drawPulses,
   drawMovingBalls
 ];
 
