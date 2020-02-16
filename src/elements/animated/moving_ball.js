@@ -24,11 +24,39 @@ export class MovingBall {
     return new Vector(deltaX, deltaY)
   }
 
-  static checkCollision(ballA, ballB) {
-    let collisionDistance = ballA.radius + ballB.radius;
-    let distance = MovingBall.delta(ballA, ballB).magnitude();
+  static velocityDelta(ballA, ballB) {
+    let deltaX = ballB.velocity.x - ballA.velocity.x;
+    let deltaY = ballB.velocity.y - ballA.velocity.y;
+    return new Vector(deltaX, deltaY)
+  }
 
-    return distance < collisionDistance;
+  static dotProduct(ballA, ballB) {
+    let delta = new Vector(
+      ballA.position.x - ballB.position.x,
+      ballA.position.y - ballB.position.y
+    );
+    let deltaVelocity = new Vector(
+      ballB.velocity.x - ballA.velocity.x,
+      ballB.velocity.y - ballA.velocity.y,
+    );
+
+    return delta.x * deltaVelocity.x + delta.y * deltaVelocity.y;
+  }
+
+  static distanceSquared(ballA, ballB) {
+    let dx = ballA.position.x - ballB.position.x;
+    let dy = ballA.position.y - ballB.position.y;
+    return dx * dx + dy * dy;
+  }
+
+  static touching(ballA, ballB) {
+    let threshold = (ballA.radius + ballB.radius) * (ballA.radius + ballB.radius);
+
+    return MovingBall.distanceSquared(ballA, ballB) <= threshold;
+  }
+
+  static checkCollision(ballA, ballB) {
+    return MovingBall.touching(ballA, ballB) && MovingBall.dotProduct(ballA, ballB) > 0;
   }
 
   static collisionAngle(ballA, ballB) {
@@ -37,24 +65,23 @@ export class MovingBall {
   }
 
   static calculateCollisionVelocities(ballA, ballB) {
-    let collisionAngle = MovingBall.collisionAngle(ballA, ballB);
-    let speedA =  ballA.velocity.magnitude();
-    let speedB =  ballB.velocity.magnitude();
-    let angleA = ballA.angle();
-    let angleB = ballB.angle();
-
-    let collisionSpeedA = (speedA * Math.cos(angleA - collisionAngle) * (ballA.mass - ballB.mass) + 2 * ballB.mass * speedB * Math.cos(angleB - collisionAngle)) / (ballA.mass + ballB.mass);
-    let collisionSpeedB = (speedB * Math.cos(angleB - collisionAngle) * (ballB.mass - ballA.mass) + 2 * ballA.mass * speedA * Math.cos(angleA - collisionAngle)) / (ballB.mass + ballA.mass);
-
+    let collisionMagnitude = MovingBall.dotProduct(ballA, ballB) / MovingBall.distanceSquared(ballA, ballB);
+    let collisionVector = new Vector(
+      (ballA.position.x - ballB.position.x) * collisionMagnitude,
+      (ballA.position.y - ballB.position.y) * collisionMagnitude,
+    )
+    let combinedMass = ballA.mass + ballB.mass;
+    let collisionRatioA = 2 * ballB.mass / combinedMass;
+    let collisionRatioB = 2 * ballA.mass / combinedMass;
 
     let newVelocityA = new Vector(
-      collisionSpeedA * Math.cos(collisionAngle) + speedA * Math.sin(angleA - collisionAngle) * Math.cos(collisionAngle + Math.PI/2),
-      collisionSpeedA * Math.sin(collisionAngle) + speedA * Math.sin(angleA - collisionAngle) * Math.sin(collisionAngle + Math.PI/2)
+      ballA.velocity.x + collisionRatioA * collisionVector.x,
+      ballA.velocity.y + collisionRatioA * collisionVector.y,
     );
 
     let newVelocityB = new Vector(
-      collisionSpeedB * Math.cos(collisionAngle) + speedB * Math.sin(angleB - collisionAngle) * Math.cos(collisionAngle + Math.PI/2),
-      collisionSpeedB * Math.sin(collisionAngle) + speedB * Math.sin(angleB - collisionAngle) * Math.sin(collisionAngle + Math.PI/2)
+      ballB.velocity.x - collisionRatioB * collisionVector.x,
+      ballB.velocity.y - collisionRatioB * collisionVector.y,
     );
 
     return [newVelocityA, newVelocityB];
@@ -62,6 +89,8 @@ export class MovingBall {
 
   static collisionPoint(ballA, ballB) {
     let collisionAngle = MovingBall.collisionAngle(ballA, ballB);
+    let dx = ballB.position.x - ballA.position.x;
+    let dy = ballB.position.y - ballA.position.y;
 
     return new Vector(
       ballA.position.x + ballA.radius * Math.cos(collisionAngle),

@@ -505,11 +505,36 @@ function () {
       return new Vector$1(deltaX, deltaY);
     }
   }, {
+    key: "velocityDelta",
+    value: function velocityDelta(ballA, ballB) {
+      var deltaX = ballB.velocity.x - ballA.velocity.x;
+      var deltaY = ballB.velocity.y - ballA.velocity.y;
+      return new Vector$1(deltaX, deltaY);
+    }
+  }, {
+    key: "dotProduct",
+    value: function dotProduct(ballA, ballB) {
+      var delta = new Vector$1(ballA.position.x - ballB.position.x, ballA.position.y - ballB.position.y);
+      var deltaVelocity = new Vector$1(ballB.velocity.x - ballA.velocity.x, ballB.velocity.y - ballA.velocity.y);
+      return delta.x * deltaVelocity.x + delta.y * deltaVelocity.y;
+    }
+  }, {
+    key: "distanceSquared",
+    value: function distanceSquared(ballA, ballB) {
+      var dx = ballA.position.x - ballB.position.x;
+      var dy = ballA.position.y - ballB.position.y;
+      return dx * dx + dy * dy;
+    }
+  }, {
+    key: "touching",
+    value: function touching(ballA, ballB) {
+      var threshold = (ballA.radius + ballB.radius) * (ballA.radius + ballB.radius);
+      return MovingBall.distanceSquared(ballA, ballB) <= threshold;
+    }
+  }, {
     key: "checkCollision",
     value: function checkCollision(ballA, ballB) {
-      var collisionDistance = ballA.radius + ballB.radius;
-      var distance = MovingBall.delta(ballA, ballB).magnitude();
-      return distance < collisionDistance;
+      return MovingBall.touching(ballA, ballB) && MovingBall.dotProduct(ballA, ballB) > 0;
     }
   }, {
     key: "collisionAngle",
@@ -520,21 +545,21 @@ function () {
   }, {
     key: "calculateCollisionVelocities",
     value: function calculateCollisionVelocities(ballA, ballB) {
-      var collisionAngle = MovingBall.collisionAngle(ballA, ballB);
-      var speedA = ballA.velocity.magnitude();
-      var speedB = ballB.velocity.magnitude();
-      var angleA = ballA.angle();
-      var angleB = ballB.angle();
-      var collisionSpeedA = (speedA * Math.cos(angleA - collisionAngle) * (ballA.mass - ballB.mass) + 2 * ballB.mass * speedB * Math.cos(angleB - collisionAngle)) / (ballA.mass + ballB.mass);
-      var collisionSpeedB = (speedB * Math.cos(angleB - collisionAngle) * (ballB.mass - ballA.mass) + 2 * ballA.mass * speedA * Math.cos(angleA - collisionAngle)) / (ballB.mass + ballA.mass);
-      var newVelocityA = new Vector$1(collisionSpeedA * Math.cos(collisionAngle) + speedA * Math.sin(angleA - collisionAngle) * Math.cos(collisionAngle + Math.PI / 2), collisionSpeedA * Math.sin(collisionAngle) + speedA * Math.sin(angleA - collisionAngle) * Math.sin(collisionAngle + Math.PI / 2));
-      var newVelocityB = new Vector$1(collisionSpeedB * Math.cos(collisionAngle) + speedB * Math.sin(angleB - collisionAngle) * Math.cos(collisionAngle + Math.PI / 2), collisionSpeedB * Math.sin(collisionAngle) + speedB * Math.sin(angleB - collisionAngle) * Math.sin(collisionAngle + Math.PI / 2));
+      var collisionMagnitude = MovingBall.dotProduct(ballA, ballB) / MovingBall.distanceSquared(ballA, ballB);
+      var collisionVector = new Vector$1((ballA.position.x - ballB.position.x) * collisionMagnitude, (ballA.position.y - ballB.position.y) * collisionMagnitude);
+      var combinedMass = ballA.mass + ballB.mass;
+      var collisionRatioA = 2 * ballB.mass / combinedMass;
+      var collisionRatioB = 2 * ballA.mass / combinedMass;
+      var newVelocityA = new Vector$1(ballA.velocity.x + collisionRatioA * collisionVector.x, ballA.velocity.y + collisionRatioA * collisionVector.y);
+      var newVelocityB = new Vector$1(ballB.velocity.x - collisionRatioB * collisionVector.x, ballB.velocity.y - collisionRatioB * collisionVector.y);
       return [newVelocityA, newVelocityB];
     }
   }, {
     key: "collisionPoint",
     value: function collisionPoint(ballA, ballB) {
       var collisionAngle = MovingBall.collisionAngle(ballA, ballB);
+      var dx = ballB.position.x - ballA.position.x;
+      var dy = ballB.position.y - ballA.position.y;
       return new Vector$1(ballA.position.x + ballA.radius * Math.cos(collisionAngle), ballA.position.y + ballA.radius * Math.sin(collisionAngle));
     }
   }]);
@@ -544,7 +569,7 @@ function () {
 
 var movingBalls = [];
 function setupMovingObjets(ctx, _images) {
-  var numBalls = Math.floor(Math.random() * 6);
+  var numBalls = Math.floor(Math.random() * 10);
   var i = 0;
 
   while (i < numBalls) {
@@ -578,7 +603,7 @@ function setupMovingObjets(ctx, _images) {
       for (var _iterator = movingBalls[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
         var ball = _step.value;
 
-        if (MovingBall.checkCollision(ball, newBall)) {
+        if (MovingBall.touching(ball, newBall)) {
           collision = true;
         }
       }

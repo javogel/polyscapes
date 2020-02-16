@@ -5,7 +5,7 @@ import { Vector } from "./elements/vector";
 let movingBalls = [];
 
 export function setupMovingObjets(ctx, _images) {
-  let numBalls = Math.floor(Math.random() * 6);
+  let numBalls = Math.floor(Math.random() * 10);
   let i = 0;
 
   while (i < numBalls) {
@@ -29,7 +29,7 @@ export function setupMovingObjets(ctx, _images) {
 
 
     for (var ball of movingBalls) {
-      if(MovingBall.checkCollision(ball, newBall)) { collision = true; }
+      if(MovingBall.touching(ball, newBall)) { collision = true; }
     }
 
     if(!collision) {
