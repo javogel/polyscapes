@@ -13,17 +13,18 @@ import {
   drawOscillatorSmall
 } from "./elements/animated/oscillator";
 import { circleOrbit } from "./elements/animated/orbit";
+import { wave1} from "./elements/animated/wave";
 
 let images = shuffleArray([
-  "forrest.jpeg",
+  // "forrest.jpeg",
   "desert.jpeg",
   // "gradient.jpeg",
   // "yosemite.jpeg",
   // "snow.jpeg",
   "peak.jpeg",
-  "tree.jpeg",
+  // "tree.jpeg",
   // "city.jpeg",
-  "bark.jpeg",
+  // "bark.jpeg",
   "ocean.jpeg",
   "ocean2.jpeg",
   "purple-sky.jpeg",
@@ -36,14 +37,16 @@ const imageElements = [
   //   horizontalStripes,
   //   centeredCircle,
   // triangle,
-  //drawPenroseTiling,
-  //drawOscillator,
 
-  //drawSequentialPenroseTiling,
-  //drawOscillatorSmall,
-  // circleOrbit,
   drawPulses,
-  drawMovingBalls
+  drawMovingBalls,
+  // drawPenroseTiling,
+  // drawOscillator,
+
+  // drawSequentialPenroseTiling,
+  // drawOscillatorSmall,
+  // circleOrbit
+  wave1
 ];
 
 let userInteracted = false;
@@ -68,7 +71,6 @@ function draw() {
     refreshAudioData(audio);
   }
 
-  // backgroundImage(ctx, images[0])
   drawElements(imageElements, ctx);
 }
 
